@@ -10,29 +10,7 @@ from documents.utils import *
 import tkinter as tk
 from tkinter import filedialog
 
-def select_file():
-    file_path = filedialog.askopenfilename()
-    if file_path:
-        label_file.config(text=f"Selected: {file_path}")
-        selected_file.set(file_path)
 
-def select_logo():
-    logo_path = filedialog.askopenfilename(
-        title="Select an Image",
-        filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.gif;*.bmp")],  # Filter image file types
-    )
-    if logo_path:
-        label_logo.config(text=f"Selected: {logo_path}")
-        selected_logo.set(logo_path)
-
-def select_directory():
-    output_directory = filedialog.askdirectory(title="Select Output Directory")
-    if output_directory:
-        label_dir.config(text=f"Selected: {output_directory}")
-        selected_directory.set(output_directory)
-
-def option_selected(choice):
-    label_option.config(text=f"Selected option: {choice}")
 
 
 def submit_action():
@@ -239,6 +217,175 @@ def submit_action():
     submit_label.config(text="Done!")
 
 
+class MainApp(tk.Tk):
+    def select_file(self):
+        file_path = filedialog.askopenfilename()
+        if file_path:
+            self.label_file.config(text=f"Selected: {file_path}")
+            self.selected_file.set(file_path)
+
+    def select_logo(self):
+        logo_path = filedialog.askopenfilename(
+            title="Select an Image",
+            filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.gif;*.bmp")],  # Filter image file types
+        )
+        if logo_path:
+            self.label_logo.config(text=f"Selected: {logo_path}")
+            self.selected_logo.set(logo_path)
+
+    def select_directory(self):
+        output_directory = filedialog.askdirectory(title="Select Output Directory")
+        if output_directory:
+            self.label_dir.config(text=f"Selected: {output_directory}")
+            self.selected_directory.set(output_directory)
+
+    def option_selected(self, choice):
+        self.label_option.config(text=f"Selected option: {choice}")
+
+    def __init__(self):
+        super().__init__()
+        self.title("AutoDocs")
+        # Set the window size
+        self.geometry("1280x720")
+        self.config(bg="#f0f0f0")  # Background color
+
+        # Variables to store user selections
+        self.selected_file = tk.StringVar(self, value="No file selected")
+        self.selected_logo = tk.StringVar(self, value="No logo selected")
+        self.selected_directory = tk.StringVar(self, value="No directory selected")
+
+        self.label_file = ""
+        self.label_logo = ""
+        self.label_dir = ""
+
+        # Define font and styling options
+        self.font_label = ("Helvetica", 12)
+        self.font_button = ("Helvetica", 12, "bold")
+
+        # Create a container to hold the frames (pages)
+        container = tk.Frame(self)
+        container.pack(side="top", fill="both", expand=True)
+
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        # Dictionary to hold pages
+        self.frames = {}
+
+        # Initialize all the pages
+        for F in (HomePage, PageOne):
+            page_name = F.__name__
+            frame = F(parent=container, controller=self)
+            self.frames[page_name] = frame
+            frame.grid(row=0, column=0, sticky="nsew")
+
+        # Show the home page initially
+        self.show_frame("HomePage")
+
+    def show_frame(self, page_name):
+        # Bring the frame to the front
+        frame = self.frames[page_name]
+        frame.tkraise()
+        
+
+
+class HomePage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        
+        label = tk.Label(self, text="Home Page", font=('Arial', 16))
+        label.pack(side="top", fill="x", pady=10)
+
+        frame_file = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_file.pack(padx=20, pady=20, fill="x")
+
+        label_file_title = tk.Label(frame_file, text="File Selection", font=controller.font_label, bg="#e6e6e6")
+        label_file_title.pack(anchor="w")
+
+        button_file = tk.Button(frame_file, text="Select File", command=controller.select_file, font=controller.font_button, bg="#4CAF50", fg="white")
+        button_file.pack(side="left", padx=10, pady=5)
+
+        controller.label_file = tk.Label(frame_file, textvariable=controller.selected_file, bg="#e6e6e6", font=controller.font_label)
+        controller.label_file.pack(side="left", padx=10)
+
+        # Create a frame for file selection
+        frame_logo = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_logo.pack(padx=20, pady=20, fill="x")
+
+        label_logo_title = tk.Label(frame_logo, text="Logo Selection", font=controller.font_label, bg="#e6e6e6")
+        label_logo_title.pack(anchor="w")
+
+        button_logo = tk.Button(frame_logo, text="Select Logo", command=controller.select_logo, font=controller.font_button, bg="#4CAF50", fg="white")
+        button_logo.pack(side="left", padx=10, pady=5)
+
+        controller.label_logo = tk.Label(frame_logo, textvariable=controller.selected_logo, bg="#e6e6e6", font=controller.font_label)
+        controller.label_logo.pack(side="left", padx=10)
+
+        # Create a frame for directory selection
+        frame_dir = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_dir.pack(padx=20, pady=20, fill="x")
+
+        label_dir_title = tk.Label(frame_dir, text="Directory Selection", font=controller.font_label, bg="#e6e6e6")
+        label_dir_title.pack(anchor="w")
+
+        button_dir = tk.Button(frame_dir, text="Select Output Directory", command=controller.select_directory, font=controller.font_button, bg="#4CAF50", fg="white")
+        button_dir.pack(side="left", padx=10, pady=5)
+
+        controller.label_dir = tk.Label(frame_dir, textvariable=controller.selected_directory, bg="#e6e6e6", font=controller.font_label)
+        controller.label_dir.pack(side="left", padx=10)
+
+        # Create a frame for the option menu
+        frame_option = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_option.pack(padx=20, pady=20, fill="x")
+
+        label_option_title = tk.Label(frame_option, text="Select an Option", font=controller.font_label, bg="#e6e6e6")
+        label_option_title.pack(anchor="w")
+
+        options = ["Capital Call", "Distribution Notice", "GP Report", "Wire Instruction", "Quarterly Update", "K1 Document"]
+        controller.selected_option = tk.StringVar(self)
+        controller.selected_option.set(options[0])
+
+        option_menu = tk.OptionMenu(frame_option, controller.selected_option, *options, command=controller.option_selected)
+        option_menu.config(font=controller.font_button, bg="#4CAF50", fg="white")
+        option_menu.pack(side="left", padx=10, pady=5)
+
+        controller.label_option = tk.Label(frame_option, text="No option selected", bg="#e6e6e6", font=controller.font_label)
+        controller.label_option.pack(side="left", padx=10)
+        
+        # Button to go to next page
+        button1 = tk.Button(self, text="Next",
+                            command=lambda: controller.show_frame("PageOne"))
+        button1.pack()
+
+
+class PageOne(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+
+        #add all the outputs
+        label = tk.Label(self, text="This is Page One", font=('Arial', 16))
+        label.pack(side="top", fill="x", pady=10)
+
+        # Button to go back to the home page
+        back_button = tk.Button(self, text="Back",
+                                command=lambda: controller.show_frame("HomePage"))
+        back_button.pack()
+
+
+        submit_button = tk.Button(self, text="Submit")
+        submit_button.pack()
+
+
+
+
+if __name__ == "__main__":
+    app = MainApp()
+    app.mainloop()
+
+
+"""
 # Main execution block
 if __name__ == "__main__":
     
@@ -247,7 +394,7 @@ if __name__ == "__main__":
     root.title("AutoDocs")
 
     # Set the window size
-    root.geometry("600x650")
+    root.geometry("1280x720")
     root.config(bg="#f0f0f0")  # Background color
 
     # Variables to store user selections
@@ -258,6 +405,10 @@ if __name__ == "__main__":
     # Define font and styling options
     font_label = ("Helvetica", 12)
     font_button = ("Helvetica", 12, "bold")
+
+
+
+
 
     # Create a frame for file selection
     frame_file = tk.Frame(root, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
@@ -298,8 +449,6 @@ if __name__ == "__main__":
     label_dir = tk.Label(frame_dir, textvariable=selected_directory, bg="#e6e6e6", font=font_label)
     label_dir.pack(side="left", padx=10)
 
-
-
     # Create a frame for the option menu
     frame_option = tk.Frame(root, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
     frame_option.pack(padx=20, pady=20, fill="x")
@@ -329,5 +478,4 @@ if __name__ == "__main__":
     # Run the application
     root.mainloop()
 
-
-    
+"""
