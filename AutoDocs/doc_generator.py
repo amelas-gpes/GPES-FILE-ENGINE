@@ -265,10 +265,8 @@ class MainApp(tk.Tk):
             except Exception as e:
                 print(f"An error occurred while generating PDF for {legal_name}: {e}")
             
-        print(self.files_list)
 
-        
-        if (self.choice.get() == "bulk"):
+        if (self.bulk_choice.get()):
             self.run_merge()
         self.files_list = []
         
@@ -323,6 +321,8 @@ class MainApp(tk.Tk):
                 page.merge_page(overlay_page)
                 pdf_writer.add_page(page)
 
+            if (self.split_choice.get()):
+                continue
             os.remove(filepath)
 
         with open(output_path, 'wb') as out_file:
@@ -347,7 +347,8 @@ class MainApp(tk.Tk):
         self.label_dir = ""
 
         # Create a StringVar to hold the choice (split or bulk)
-        self.choice = tk.StringVar(value="split")
+        self.split_choice = tk.IntVar()
+        self.bulk_choice = tk.IntVar()
         self.start_delimiter = tk.StringVar(self, value = "<start>")
         self.end_delimiter = tk.StringVar(self, value = "<end>")
         self.output_file = tk.StringVar(self, value = "bulk.pdf")
@@ -390,14 +391,14 @@ class InputPage(tk.Frame):
         super().__init__(parent)
         self.controller = controller
         
-        label = tk.Label(self, text="Input Page", font=('Arial', 16))
+        label = tk.Label(self, text="GPES FileGen", font=('Arial', 16))
         label.pack(side="top", fill="x", pady=10)
 
         # Create a frame for file selection
         frame_file = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_file.pack(padx=20, pady=20, fill="x")
 
-        label_file_title = tk.Label(frame_file, text="File Selection", font=controller.font_label, bg="#e6e6e6")
+        label_file_title = tk.Label(frame_file, text="Select CRM Excel File", font=controller.font_label, bg="#e6e6e6")
         label_file_title.pack(anchor="w")
 
         button_file = tk.Button(frame_file, text="Select File", command=controller.select_file, font=controller.font_button, bg="#4CAF50", fg="white")
@@ -410,7 +411,7 @@ class InputPage(tk.Frame):
         frame_logo = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_logo.pack(padx=20, pady=20, fill="x")
 
-        label_logo_title = tk.Label(frame_logo, text="Logo Selection", font=controller.font_label, bg="#e6e6e6")
+        label_logo_title = tk.Label(frame_logo, text="Select Logo To Be Placed On Documents", font=controller.font_label, bg="#e6e6e6")
         label_logo_title.pack(anchor="w")
 
         button_logo = tk.Button(frame_logo, text="Select Logo", command=controller.select_logo, font=controller.font_button, bg="#4CAF50", fg="white")
@@ -423,7 +424,7 @@ class InputPage(tk.Frame):
         frame_option = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_option.pack(padx=20, pady=20, fill="x")
 
-        label_option_title = tk.Label(frame_option, text="Select an Option", font=controller.font_label, bg="#e6e6e6")
+        label_option_title = tk.Label(frame_option, text="Select An Option", font=controller.font_label, bg="#e6e6e6")
         label_option_title.pack(anchor="w")
 
         options = ["Capital Call", "Distribution Notice", "GP Report", "Wire Instruction", "Quarterly Update", "K1 Document"]
@@ -449,7 +450,7 @@ class OutputPage(tk.Frame):
     def __init__(self, parent, controller):
         def toggle_bulk_entry():
             # Show or hide the entry widget based on the selected option
-            if controller.choice.get() == "bulk":
+            if controller.bulk_choice.get():
                 self.bulk_frame.pack()
             else:
                 self.bulk_frame.pack_forget()
@@ -457,7 +458,7 @@ class OutputPage(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        label = tk.Label(self, text="Output Page", font=('Arial', 16))
+        label = tk.Label(self, text="GPES FileGen", font=('Arial', 16))
         label.pack(side="top", fill="x", pady=10)
 
         frame_file = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
@@ -467,7 +468,7 @@ class OutputPage(tk.Frame):
         frame_dir = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_dir.pack(padx=20, pady=20, fill="x")
 
-        label_dir_title = tk.Label(frame_dir, text="Directory Selection", font=controller.font_label, bg="#e6e6e6")
+        label_dir_title = tk.Label(frame_dir, text="Select Where To Store Output PDF", font=controller.font_label, bg="#e6e6e6")
         label_dir_title.pack(anchor="w")
 
         button_dir = tk.Button(frame_dir, text="Select Output Directory", command=controller.select_directory, font=controller.font_button, bg="#4CAF50", fg="white")
@@ -480,10 +481,11 @@ class OutputPage(tk.Frame):
         frame_output_choice = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_output_choice.pack(padx=20, pady=20, fill="x")
 
+        label_options = tk.Label(frame_output_choice, text="Select Output Format", font=controller.font_label, bg="#e6e6e6")
+        label_options.pack(anchor="w")
 
-        # Create and pack the radiobuttons for "Split" and "Bulk"
-        split_option = tk.Radiobutton(frame_output_choice, text="Split", variable=controller.choice, value="split", command=toggle_bulk_entry)
-        bulk_option = tk.Radiobutton(frame_output_choice, text="Bulk", variable=controller.choice, value="bulk", command=toggle_bulk_entry)
+        split_option = tk.Checkbutton(frame_output_choice, text="Split", variable=controller.split_choice, command=toggle_bulk_entry)
+        bulk_option = tk.Checkbutton(frame_output_choice, text="Bulk", variable=controller.bulk_choice, command=toggle_bulk_entry)
 
         split_option.pack(anchor="w")
         bulk_option.pack(anchor="w")
