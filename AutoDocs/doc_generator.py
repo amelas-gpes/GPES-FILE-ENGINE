@@ -67,7 +67,7 @@ class MainApp(tk.Tk):
         #submit_label.config(text="Generating...")
 
         # Read data from the selected Excel file
-        df = pd.read_excel(excel_file_path)
+        df = pd.read_excel(excel_file_path, sheet_name = "Investor")
 
 
         # Get current quarter and year for filename
@@ -174,7 +174,7 @@ class MainApp(tk.Tk):
 
                     output_pdf_name2 = f"{fund_code_safe} Quarterly Update Page2 - {quarter_str}.pdf"
                     output_pdf_path2 = os.path.join(output_directory, output_pdf_name2)
-                    add_multiple_texts_to_existing_pdf("resized_output.pdf", output_pdf_path2, texts_with_positions)
+                    add_multiple_texts_to_existing_pdf("documents/quarterly_update_template.pdf", output_pdf_path2, texts_with_positions)
 
                     output_pdf_name_final = f"{fund_code_safe}_{fund_name} - Quarterly Update.pdf"
                     output_pdf_path_final = os.path.join(output_directory, output_pdf_name_final)
@@ -205,7 +205,7 @@ class MainApp(tk.Tk):
                     os.remove(output_pdf_path)
                     os.remove(output_pdf_path2)
 
-                    self.files_list.append(output_pdf_path)
+                    self.files_list.append(output_pdf_path_final)
                     
                 #gp report
                 elif option == "GP Report":
