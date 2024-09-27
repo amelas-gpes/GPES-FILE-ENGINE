@@ -209,6 +209,11 @@ class MainApp(tk.Tk):
                     
                 #gp report
                 elif option == "GP Report":
+                    #if fund has already been encountered, skip it
+                    if (fund_name in funds):
+                        continue
+                    funds[fund_name] = 1
+
                     output_pdf_name = f"{fund_code_safe}_{fund_name} - GP Report.pdf"
                     output_pdf_path = os.path.join(output_directory, output_pdf_name)
 
@@ -317,6 +322,7 @@ class MainApp(tk.Tk):
                 overlay_page = overlay_pdf.pages[0]
                 page.merge_page(overlay_page)
                 pdf_writer.add_page(page)
+
             os.remove(filepath)
 
         with open(output_path, 'wb') as out_file:
