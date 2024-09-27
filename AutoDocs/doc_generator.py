@@ -20,16 +20,18 @@ from reportlab.lib.units import inch
 from io import BytesIO
 
 
-
-
-
-
 class MainApp(tk.Tk):
     def select_file(self):
         file_path = filedialog.askopenfilename()
         if file_path:
             self.label_file.config(text=f"Selected: {file_path}")
             self.selected_file.set(file_path)
+
+            df = pd.read_excel(file_path, sheet_name = "Investor")
+            investor_col = df["Legal Name"]
+            for i in investor_col:
+                self.investors.add(i)
+            self.checked_investors = list(self.investors)
 
     def select_logo(self):
         logo_path = filedialog.askopenfilename(
@@ -50,6 +52,8 @@ class MainApp(tk.Tk):
         self.label_option.config(text=f"Selected option: {choice}")
 
     def submit_action(self):
+        print(self.checked_investors)
+        
         excel_file_path = self.selected_file.get()
         logo_path = self.selected_logo.get()
         output_directory = self.selected_directory.get()
@@ -96,6 +100,13 @@ class MainApp(tk.Tk):
             country = str(row["Country"])
             tax_id = str(row["Tax ID"])
             fund_name = str(row["Fund Name"])
+
+            # Check if investor was checked
+            print(self.checked_investors)
+            print(legal_name)
+            print(legal_name not in self.checked_investors)
+            if legal_name not in self.checked_investors:
+                continue
 
             # Check if the logo path is relative or absolute
             if not os.path.isabs(logo_path):
@@ -342,6 +353,9 @@ class MainApp(tk.Tk):
         self.label_logo = ""
         self.label_dir = ""
 
+        self.investors = set()
+        self.checked_investors = list(self.investors)
+
         # Create a StringVar to hold the choice (split or bulk)
         self.split_choice = tk.IntVar()
         self.bulk_choice = tk.IntVar()
@@ -381,7 +395,6 @@ class MainApp(tk.Tk):
         frame.tkraise()
         
 
-
 class InputPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -390,7 +403,7 @@ class InputPage(tk.Frame):
         label = tk.Label(self, text="GPES FileGen", font=('Arial', 16))
         label.pack(side="top", fill="x", pady=10)
 
-        # Create a frame for file selection
+        # Frame for file selection
         frame_file = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_file.pack(padx=20, pady=20, fill="x")
 
@@ -403,7 +416,7 @@ class InputPage(tk.Frame):
         controller.label_file = tk.Label(frame_file, textvariable=controller.selected_file, bg="#e6e6e6", font=controller.font_label)
         controller.label_file.pack(side="left", padx=10)
 
-        # Create a frame for logo selection
+        # Frame for logo selection
         frame_logo = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_logo.pack(padx=20, pady=20, fill="x")
 
@@ -416,7 +429,7 @@ class InputPage(tk.Frame):
         controller.label_logo = tk.Label(frame_logo, textvariable=controller.selected_logo, bg="#e6e6e6", font=controller.font_label)
         controller.label_logo.pack(side="left", padx=10)
 
-        # Create a frame for the option menu
+        # Frame for the option menu
         frame_option = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_option.pack(padx=20, pady=20, fill="x")
 
@@ -433,16 +446,87 @@ class InputPage(tk.Frame):
 
         controller.label_option = tk.Label(frame_option, text="No option selected", bg="#e6e6e6", font=controller.font_label)
         controller.label_option.pack(side="left", padx=10)
+
+        # Frame for the investors input
+        frame_investors = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_investors.pack(padx=20, pady=20, fill="x")
+
+        investors_button = tk.Button(frame_investors, text="Select Investors", command=self.show_investors)
+        investors_button.pack()
         
         # Button to go to next page
-        button1 = tk.Button(self, text="Next",
-                            command=lambda: controller.show_frame("OutputPage"))
+        button1 = tk.Button(self, text="Next", command=lambda: controller.show_frame("OutputPage"))
         button1.pack()
+
+    def show_investors(self):
+        def on_frame_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def on_mouse_wheel(event):
+            # Cross-platform scrolling using event.delta
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def update_list():
+            # Keep only the items that are checked (i.e., where investor_value.get() == 1)
+            self.controller.checked_investors = [item for i, item in enumerate(item_list) if vars[i].get() == 1]
+            list_label.config(text=f"Updated list: {self.controller.checked_investors}")
+
+        def create_checkboxes():
+            # Create checkboxes for each item in the list
+            for i, item in enumerate(item_list):
+                investor_value = tk.IntVar(value=(item in self.controller.checked_investors))  # Variable to track the state of the checkbox
+                vars.append(investor_value)
+                checkbox = tk.Checkbutton(scrollable_frame, text=item, variable=investor_value, command=update_list)
+                checkbox.pack(anchor="w", pady=5)
+                checkboxes.append(checkbox)
+
+        # Use Toplevel instead of Tk to create a popup window
+        window = tk.Toplevel()
+        window.title("Scrollable Checkboxes")
+        window.geometry("400x400")
+
+        # Create a canvas and scrollbar
+        canvas = tk.Canvas(window)
+        scrollbar = tk.Scrollbar(window, orient="vertical", command=canvas.yview)
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+
+        # Configure canvas to work with scrollbar
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Configure canvas to work with mouse
+        canvas.bind_all("<MouseWheel>", on_mouse_wheel)
+
+        # Create a frame inside the canvas
+        scrollable_frame = tk.Frame(canvas)
+
+        # Create a window inside the canvas that contains the frame
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+        # Bind the frame size changes to update the canvas scrollregion
+        scrollable_frame.bind("<Configure>", on_frame_configure)
+
+        # Sample list of items
+        item_list = ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6", "Item 7", "Item 8", "Item 9", "Item 10","Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6", "Item 7", "Item 8", "Item 9", "Item 10"]
+        item_list = list(self.controller.investors)
+
+        # Lists to store checkbox variables and checkbox widgets
+        vars = []
+        checkboxes = []
+
+        # Create checkboxes for each item in the list
+        create_checkboxes()
+
+        # Create a label to show the updated list
+        list_label = tk.Label(window, text=f"Current list: {item_list}")
+        list_label.pack(pady=10)
+
+        window.mainloop()
+     
+
 
 
 class OutputPage(tk.Frame):
-    
-            
     def __init__(self, parent, controller):
         def toggle_bulk_entry():
             # Show or hide the entry widget based on the selected option
