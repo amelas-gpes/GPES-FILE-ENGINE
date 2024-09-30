@@ -19,6 +19,7 @@ from reportlab.lib.colors import white
 from reportlab.lib.units import inch
 from io import BytesIO
 
+from pdf_viewer import *
 
 class MainApp(tk.Tk):
     def select_file(self):
@@ -592,6 +593,15 @@ class OutputPage(tk.Frame):
 
         tk.Label(self.bulk_frame, text="Output File Name:").grid(row=3, column=0, padx=5, pady=5, sticky='e')
         tk.Entry(self.bulk_frame, textvariable=controller.output_file).grid(row=3, column=1, padx=5, pady=5)
+
+        # open pdf file
+        file_name = r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\GPES-FILE-ENGINE\AutoDocs\output\quarterly_updates\bulk.pdf"
+        doc = fitz.open(file_name)
+
+        # Create a frame to show sample pdf
+        frame_sample = Frame(self)
+        frame_sample.pack()
+        sample_output(frame_sample, doc)
 
         # Button to go back a page
         back_button = tk.Button(self, text="Back",
