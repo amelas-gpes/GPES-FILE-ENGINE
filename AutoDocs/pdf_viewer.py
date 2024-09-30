@@ -3,6 +3,9 @@ from tkinter import *
 from PIL import Image, ImageTk
 
 def sample_output(root, doc):
+    for widget in root.winfo_children():
+        widget.destroy()
+
     # transformation matrix we can apply on pages
     zoom = 1
     mat = fitz.Matrix(zoom, zoom)
