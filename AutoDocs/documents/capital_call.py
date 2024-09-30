@@ -9,7 +9,7 @@ Parameters:
 - legal_name: Legal name of the investor.
 - image_path: Path to the logo image file.
 """
-def create_capital_call_pdf(filename, investing_entity_name, legal_name, image_path):
+def create_capital_call_pdf(filename, investing_entity_name, legal_name, image_path, color="#515154"):
     # Create a document template with specified margins and page size
     doc = SimpleDocTemplate(
         filename, pagesize=letter,
@@ -70,6 +70,11 @@ def create_capital_call_pdf(filename, investing_entity_name, legal_name, image_p
         parent=table_cell_style,
         fontName='Helvetica-Bold',
     )
+    placement_style = ParagraphStyle(
+        name="sample_style",
+        parent=table_cell_style,
+        textColor = colors.HexColor(color)
+    )
 
     # Add Logo to the document with aspect ratio maintained
     logo = create_logo(80, 40, image_path)  # Adjust max dimensions as needed
@@ -84,9 +89,9 @@ def create_capital_call_pdf(filename, investing_entity_name, legal_name, image_p
 
     # Create header information with date, recipient, and sender details
     header_info = f"""
-    <b>Date:</b> {current_date}<br/>
-    <b>To:</b> {legal_name}<br/>
-    <b>From:</b> {investing_entity_name}
+    <b>Date:</b> <font color="{color}">{current_date}</font><br/>
+    <b>To:</b> <font color="{color}">{legal_name}</font><br/>
+    <b>From:</b> <font color="{color}">{investing_entity_name}</font>
     """
     story.append(Paragraph(header_info.strip(), styles['CustomBody']))
 
@@ -97,7 +102,7 @@ def create_capital_call_pdf(filename, investing_entity_name, legal_name, image_p
 
     # Company Description
     company_description = f"""
-    {investing_entity_name} is a private equity investment fund focused on identifying and nurturing high-potential growth companies across various sectors. With a proven track record of strategic investments and value creation, our fund aims to generate superior returns for our limited partners while fostering innovation and sustainable growth in our portfolio companies.
+    <font color="{color}">{investing_entity_name}</font> is a private equity investment fund focused on identifying and nurturing high-potential growth companies across various sectors. With a proven track record of strategic investments and value creation, our fund aims to generate superior returns for our limited partners while fostering innovation and sustainable growth in our portfolio companies.
     """
     story.append(Paragraph(company_description.strip(), styles['CustomBody']))
 
@@ -120,23 +125,23 @@ def create_capital_call_pdf(filename, investing_entity_name, legal_name, image_p
         ],
         [
             Paragraph("Total Commitment", table_cell_style),
-            Paragraph("${:,}".format(total_commitment), table_cell_bold_style)
+            Paragraph("${:,}".format(total_commitment), placement_style)
         ],
         [
             Paragraph("Prior Capital Contributions", table_cell_style),
-            Paragraph("${:,}".format(prior_capital_contributions), table_cell_style)
+            Paragraph("${:,}".format(prior_capital_contributions), placement_style)
         ],
         [
             Paragraph("Unfunded Commitment", table_cell_style),
-            Paragraph("${:,}".format(unfunded_commitment), table_cell_bold_style)
+            Paragraph("${:,}".format(unfunded_commitment), placement_style)
         ],
         [
             Paragraph("Current Capital Call", table_cell_style),
-            Paragraph("${:,}".format(current_capital_call), table_cell_bold_style)
+            Paragraph("${:,}".format(current_capital_call), placement_style)
         ],
         [
             Paragraph("Remaining Unfunded Commitment", table_cell_style),
-            Paragraph("${:,}".format(remaining_unfunded_commitment), table_cell_style)
+            Paragraph("${:,}".format(remaining_unfunded_commitment), placement_style)
         ],
     ]
 
@@ -161,10 +166,11 @@ def create_capital_call_pdf(filename, investing_entity_name, legal_name, image_p
     story.append(Spacer(1, 10))
     story.append(Paragraph("Purpose of Capital Call", styles['CustomHeading2']))
     purpose = """
-    • New Portfolio Company Investment: <b>${:,}</b><br/>
-    • Follow-on Investment: <b>${:,}</b><br/>
-    • Fund Expenses: <b>${:,}</b>
+    • New Portfolio Company Investment: <b><font color="{0}">${1:,}</font></b><br/>
+    • Follow-on Investment: <b><font color="{0}">${2:,}</font></b><br/>
+    • Fund Expenses: <b><font color="{0}">${3:,}</font></b>
     """.format(
+        color,
         random.randrange(600_000, 1_000_000),
         random.randrange(600_000, 1_000_000),
         random.randrange(600_000, 1_000_000)
@@ -182,19 +188,20 @@ def create_capital_call_pdf(filename, investing_entity_name, legal_name, image_p
 
     # Emphasize account details
     payment = f"""
-    <b>Bank:</b> {generate_bank_name()}<br/>
-    <b>Account:</b> {investing_entity_name}<br/>
-    <b>Account Number:</b> <b>{account_number}</b><br/>
-    <b>ABA:</b> <b>{ABA}</b><br/>
-    <b>SWIFT:</b> {SWIFT}
+    <b>Bank:</b> <font color="{color}">{generate_bank_name()}</font><br/>
+    <b>Account:</b> <font color="{color}">{investing_entity_name}</font><br/>
+    <b>Account Number:</b> <b><font color="{color}">{account_number}</font></b><br/>
+    <b>ABA:</b> <b><font color="{color}">{ABA}</font></b><br/>
+    <b>SWIFT:</b> <font color="{color}">{SWIFT}</font>
     """
     story.append(Paragraph(payment.strip(), styles['CustomBody']))
 
     # Due Date Section with emphasis
     due_date = (datetime.now() + pd.DateOffset(days=7)).strftime("%B %d, %Y")
     story.append(Spacer(1, 10))
+    due_date_text = f"<b>Due Date:</b> <b><font color='{color}'>{due_date}</font></b>"
     story.append(Paragraph(
-        f"<b>Due Date:</b> <b>{due_date}</b>",
+        due_date_text,
         styles['CustomBody']
     ))
 
@@ -217,11 +224,11 @@ def create_capital_call_pdf(filename, investing_entity_name, legal_name, image_p
 
     # Select a random contact name
     contact_name = random.choice(legal_names)
-
+    
     # Format the contact information
     contact = f"""
-    <b>Contact:</b> {contact_name}, {contact_role}<br/>
-    {contact_name.replace(' ', '.').lower()}@{investing_entity_name.lower().replace(' ', '')}.com | {format_phone_number(random.randrange(100, 1000), random.randrange(100, 1000), random.randrange(1000, 10000))}
+    <b>Contact:</b> <font color="{color}">{contact_name}</font>, <font color="{color}">{contact_role}</font><br/>
+    <font color="{color}">{contact_name.replace(' ', '.').lower()}@{investing_entity_name.lower().replace(' ', '')}.com</font> | <font color="{color}">{format_phone_number(random.randrange(100, 1000), random.randrange(100, 1000), random.randrange(1000, 10000))}</font>
     """
     story.append(Paragraph(contact.strip(), styles['CustomBody']))
 
