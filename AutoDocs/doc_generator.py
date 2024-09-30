@@ -60,13 +60,22 @@ class MainApp(tk.Tk):
         output_directory = self.selected_directory.get()
         option = self.selected_option.get()
 
+        if self.is_sample:
+            output_directory = "./sample/"
+        if self.is_sample:
+            output_pdf_name = "sample.pdf"
+
         if excel_file_path == "No file selected":
+            print("No file selected")
             return
         if logo_path == "No logo selected":
+            print("No logo selected")
             return
         if output_directory == "No directory selected":
+            print("No directory selected")
             return
         if option == "No option selected":
+            print("No option selectes")
             return
 
         # Read data from the selected Excel file
@@ -136,7 +145,8 @@ class MainApp(tk.Tk):
             try:
                 #capital call
                 if option == "Capital Call":
-                    output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - Capital Call.pdf"
+                    if not self.is_sample:
+                        output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - Capital Call.pdf"
                     output_pdf_path = os.path.join(output_directory, output_pdf_name)
 
                     create_capital_call_pdf(
@@ -151,7 +161,9 @@ class MainApp(tk.Tk):
                 
                 #k1 document
                 elif option == "K1 Document":
-                    output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - K1.pdf"
+                    if not self.is_sample:
+                        output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - K1.pdf"
+            
                     output_pdf_path = os.path.join(output_directory, output_pdf_name)
 
                     create_k1_document_pdf(fund_name, legal_name, output_pdf_path)
@@ -221,7 +233,9 @@ class MainApp(tk.Tk):
                         continue
                     funds[fund_name] = 1
 
-                    output_pdf_name = f"{fund_code_safe}_{fund_name} - GP Report.pdf"
+                    if not self.is_sample:
+                        output_pdf_name = f"{fund_code_safe}_{fund_name} - GP Report.pdf"
+
                     output_pdf_path = os.path.join(output_directory, output_pdf_name)
 
                     footer = f"{investing_entity_name}, {address_1}, {city}, {state}, {zip_code}"
@@ -237,7 +251,9 @@ class MainApp(tk.Tk):
 
                 #wire instruction confirmation
                 elif option == "Wire Instruction":
-                    output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - Wire Instructions.pdf"
+                    if not self.is_sample:
+                        output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - Wire Instructions.pdf"
+
                     output_pdf_path = os.path.join(output_directory, output_pdf_name)
 
                     create_wire_instruction_pdf(text_to_add, output_pdf_path)
@@ -246,7 +262,9 @@ class MainApp(tk.Tk):
 
                 #distribution notice
                 elif option == "Distribution Notice":
-                    output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - Distribution Notice.pdf"
+                    if not self.is_sample:
+                        output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - Distribution Notice.pdf"
+
                     output_pdf_path = os.path.join(output_directory, output_pdf_name)
 
                     text_to_add = {
@@ -271,6 +289,11 @@ class MainApp(tk.Tk):
                 print(f"Failed to write PDF for {legal_name}: {e}")
             except Exception as e:
                 print(f"An error occurred while generating PDF for {legal_name}: {e}")
+
+            if self.is_sample:
+                self.sample_ready = True
+                self.files_list = []
+                break
             
 
         if (self.bulk_choice.get()):
@@ -354,14 +377,18 @@ class MainApp(tk.Tk):
         self.investors = set()
         self.checked_investors = list(self.investors)
 
+        self.is_sample = True
+
         # Create a StringVar to hold the choice (split or bulk)
-        self.split_choice = tk.IntVar()
-        self.bulk_choice = tk.IntVar()
+        self.split_choice = tk.IntVar(value=1)
+        self.bulk_choice = tk.IntVar(value=0)
         self.start_delimiter = tk.StringVar(self, value = "<start>")
         self.end_delimiter = tk.StringVar(self, value = "<end>")
         self.output_file = tk.StringVar(self, value = "bulk.pdf")
 
         self.files_list = []
+
+        self.sample_ready = False
 
         # Define font and styling options
         self.font_label = ("Helvetica", 12)
@@ -395,6 +422,17 @@ class MainApp(tk.Tk):
 
 class InputPage(tk.Frame):
     def __init__(self, parent, controller):
+        def on_next():
+            controller.show_frame("OutputPage")
+            controller.submit_action()
+
+            # open pdf file
+            #file_name = r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\GPES-FILE-ENGINE\AutoDocs\output\wire_instructions\bulk.pdf"
+            file_name = "./sample/sample.pdf"
+            doc = fitz.open(file_name)
+            sample_output(controller.frames["OutputPage"].frame_sample, doc)
+
+
         super().__init__(parent)
         self.controller = controller
         
@@ -453,7 +491,7 @@ class InputPage(tk.Frame):
         investors_button.pack()
         
         # Button to go to next page
-        button1 = tk.Button(self, text="Next", command=lambda: controller.show_frame("OutputPage"))
+        button1 = tk.Button(self, text="Next", command= on_next)
         button1.pack()
 
     def show_investors(self):
@@ -594,15 +632,15 @@ class OutputPage(tk.Frame):
         tk.Label(self.bulk_frame, text="Output File Name:").grid(row=3, column=0, padx=5, pady=5, sticky='e')
         tk.Entry(self.bulk_frame, textvariable=controller.output_file).grid(row=3, column=1, padx=5, pady=5)
 
-        # open pdf file
-        file_name = r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\GPES-FILE-ENGINE\AutoDocs\output\quarterly_updates\bulk.pdf"
-        doc = fitz.open(file_name)
+
+        
 
         # Create a frame to show sample pdf
-        frame_sample = Frame(self)
-        frame_sample.pack()
-        sample_output(frame_sample, doc)
+        self.frame_sample = Frame(self)
+        self.frame_sample.pack()
 
+        
+    
         # Button to go back a page
         back_button = tk.Button(self, text="Back",
                                 command=lambda: controller.show_frame("InputPage"))
