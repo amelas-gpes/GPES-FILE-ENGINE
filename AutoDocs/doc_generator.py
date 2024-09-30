@@ -149,12 +149,21 @@ class MainApp(tk.Tk):
                         output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - Capital Call.pdf"
                     output_pdf_path = os.path.join(output_directory, output_pdf_name)
 
-                    create_capital_call_pdf(
-                        output_pdf_path,
-                        investing_entity_name,
-                        legal_name,
-                        logo_path
-                    )
+                    if self.is_sample:
+                        create_capital_call_pdf(
+                            output_pdf_path,
+                            investing_entity_name,
+                            legal_name,
+                            logo_path,
+                            "#ff4e28"
+                        )
+                    else:
+                        create_capital_call_pdf(
+                            output_pdf_path,
+                            investing_entity_name,
+                            legal_name,
+                            logo_path
+                        )
 
                     self.files_list.append(output_pdf_path)
 
@@ -363,7 +372,7 @@ class MainApp(tk.Tk):
         super().__init__()
         self.title("AutoDocs")
         # Set the window size
-        self.geometry("1280x720")
+        self.geometry("1280x1000")
         self.config(bg="#f0f0f0")  # Background color
 
         # Variables to store user selections
@@ -596,11 +605,11 @@ class OutputPage(tk.Frame):
         label = tk.Label(self, text="GPES FileGen", font=('Arial', 16))
         label.pack(side="top", fill="x", pady=10)
 
-        frame_file = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
-        frame_file.pack(padx=20, pady=20, fill="x")
+        frame_left = tk.Frame(self)
+        frame_left.pack(side = "left", fill = "both")
 
         # Create a frame for directory selection
-        frame_dir = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_dir = tk.Frame(frame_left, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_dir.pack(padx=20, pady=20, fill="x")
 
         label_dir_title = tk.Label(frame_dir, text="Select Where To Store Output PDF", font=controller.font_label, bg="#e6e6e6")
@@ -613,7 +622,7 @@ class OutputPage(tk.Frame):
         controller.label_dir.pack(side="left", padx=10)
 
         # Create a frame for choosing between split and bulk
-        frame_output_choice = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_output_choice = tk.Frame(frame_left, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_output_choice.pack(padx=20, pady=20, fill="x")
 
         label_options = tk.Label(frame_output_choice, text="Select Output Format", font=controller.font_label, bg="#e6e6e6")
@@ -642,17 +651,19 @@ class OutputPage(tk.Frame):
 
         # Create a frame to show sample pdf
         self.frame_sample = Frame(self)
-        self.frame_sample.pack()
+        self.frame_sample.pack(side = "left", fill = "both")
 
         
-    
+
+        frame_buttons = tk.Frame(self)
+        frame_buttons.pack(side = "bottom", fill = "both")
         # Button to go back a page
-        back_button = tk.Button(self, text="Back",
+        back_button = tk.Button(frame_buttons, text="Back",
                                 command=lambda: controller.show_frame("InputPage"))
         back_button.pack()
 
 
-        submit_button = tk.Button(self, text="Submit", command = controller.submit_action)
+        submit_button = tk.Button(frame_buttons, text="Submit", command = controller.submit_action)
         submit_button.pack()
 
         
@@ -661,5 +672,9 @@ class OutputPage(tk.Frame):
 
 
 if __name__ == "__main__":
+    file_name = "./sample/sample.pdf"
+    if os.path.isfile(file_name):
+        os.remove(file_name)
+
     app = MainApp()
     app.mainloop()
