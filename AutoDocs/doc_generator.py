@@ -177,11 +177,11 @@ class MainApp(tk.Tk):
                         continue
                     funds[fund_name] = 1
 
-                    output_pdf_name = f"{fund_code_safe} Quarterly Update Page - {quarter_str}.pdf"
-                    output_pdf_path = os.path.join(output_directory, output_pdf_name)
+                    output_pdf_name_page1 = f"{fund_code_safe} Quarterly Update Page - {quarter_str}.pdf"
+                    output_pdf_path_page1 = os.path.join(output_directory, output_pdf_name_page1)
 
                     create_quarterly_update_pdf(
-                        output_pdf_path,
+                        output_pdf_path_page1,
                         investing_entity_name,
                         legal_name,
                         logo_path
@@ -191,15 +191,16 @@ class MainApp(tk.Tk):
                         (fund_name, (30, 760))
                     ]
 
-                    output_pdf_name2 = f"{fund_code_safe} Quarterly Update Page2 - {quarter_str}.pdf"
-                    output_pdf_path2 = os.path.join(output_directory, output_pdf_name2)
-                    add_multiple_texts_to_existing_pdf("documents/quarterly_update_template.pdf", output_pdf_path2, texts_with_positions)
+                    output_pdf_name_page2 = f"{fund_code_safe} Quarterly Update Page2 - {quarter_str}.pdf"
+                    output_pdf_path_page2 = os.path.join(output_directory, output_pdf_name_page2)
+                    add_multiple_texts_to_existing_pdf("documents/quarterly_update_template.pdf", output_pdf_path_page2, texts_with_positions)
 
-                    output_pdf_name_final = f"{fund_code_safe}_{fund_name} - Quarterly Update.pdf"
-                    output_pdf_path_final = os.path.join(output_directory, output_pdf_name_final)
+                    if not self.is_sample:
+                        output_pdf_name = f"{fund_code_safe}_{fund_name} - Quarterly Update.pdf"
+                    output_pdf_path = os.path.join(output_directory, output_pdf_name)
 
                     # Step 1: Open the two PDFs
-                    with open(output_pdf_path, "rb") as file1, open(output_pdf_path2, "rb") as file2:
+                    with open(output_pdf_path_page1, "rb") as file1, open(output_pdf_path_page2, "rb") as file2:
                         reader1 = PyPDF2.PdfReader(file1)
                         reader2 = PyPDF2.PdfReader(file2)
 
@@ -217,14 +218,14 @@ class MainApp(tk.Tk):
                             writer.add_page(page)
 
                         # Step 5: Write the combined PDF to a new file
-                        with open(output_pdf_path_final, "wb") as output_file:
+                        with open(output_pdf_path, "wb") as output_file:
                             writer.write(output_file)
 
                     # Step 6: Delete the original PDFs
-                    os.remove(output_pdf_path)
-                    os.remove(output_pdf_path2)
+                    os.remove(output_pdf_path_page1)
+                    os.remove(output_pdf_path_page2)
 
-                    self.files_list.append(output_pdf_path_final)
+                    self.files_list.append(output_pdf_path)
                     
                 #gp report
                 elif option == "GP Report":
@@ -377,7 +378,7 @@ class MainApp(tk.Tk):
         self.investors = set()
         self.checked_investors = list(self.investors)
 
-        self.is_sample = True
+        self.is_sample = False
 
         # Create a StringVar to hold the choice (split or bulk)
         self.split_choice = tk.IntVar(value=1)
@@ -423,15 +424,19 @@ class MainApp(tk.Tk):
 class InputPage(tk.Frame):
     def __init__(self, parent, controller):
         def on_next():
+            controller.is_sample = True
+
             controller.show_frame("OutputPage")
             controller.submit_action()
 
             # open pdf file
             #file_name = r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\GPES-FILE-ENGINE\AutoDocs\output\wire_instructions\bulk.pdf"
             file_name = "./sample/sample.pdf"
+            if not os.path.isfile(file_name):
+                return
             doc = fitz.open(file_name)
             sample_output(controller.frames["OutputPage"].frame_sample, doc)
-
+            controller.is_sample = False
 
         super().__init__(parent)
         self.controller = controller
