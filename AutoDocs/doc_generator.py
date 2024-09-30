@@ -102,9 +102,6 @@ class MainApp(tk.Tk):
             fund_name = str(row["Fund Name"])
 
             # Check if investor was checked
-            print(self.checked_investors)
-            print(legal_name)
-            print(legal_name not in self.checked_investors)
             if legal_name not in self.checked_investors:
                 continue
 
@@ -469,9 +466,29 @@ class InputPage(tk.Frame):
         def update_list():
             # Keep only the items that are checked (i.e., where investor_value.get() == 1)
             self.controller.checked_investors = [item for i, item in enumerate(item_list) if vars[i].get() == 1]
-            list_label.config(text=f"Updated list: {self.controller.checked_investors}")
+
+        def select_all():
+            print(f"select_all: {vars[0].get()}")
+            if (vars[0].get() == 1):
+                self.controller.checked_investors = self.controller.investors
+                for i in checkboxes:
+                    i.select()
+
+            else:
+                self.controller.checked_investors = []
+                for i in checkboxes:
+                    i.deselect()
+
+            
 
         def create_checkboxes():
+            # Create checkbox for selecting all
+            select_value = tk.IntVar(value=1)
+            vars.append(select_value)
+            checkbox = tk.Checkbutton(scrollable_frame, text="Select All", variable=select_value, command=select_all)
+            checkbox.pack(anchor="w", pady=5)
+            checkboxes.append(checkbox)
+
             # Create checkboxes for each item in the list
             for i, item in enumerate(item_list):
                 investor_value = tk.IntVar(value=(item in self.controller.checked_investors))  # Variable to track the state of the checkbox
@@ -506,8 +523,6 @@ class InputPage(tk.Frame):
         # Bind the frame size changes to update the canvas scrollregion
         scrollable_frame.bind("<Configure>", on_frame_configure)
 
-        # Sample list of items
-        item_list = ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6", "Item 7", "Item 8", "Item 9", "Item 10","Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6", "Item 7", "Item 8", "Item 9", "Item 10"]
         item_list = list(self.controller.investors)
 
         # Lists to store checkbox variables and checkbox widgets
@@ -516,10 +531,6 @@ class InputPage(tk.Frame):
 
         # Create checkboxes for each item in the list
         create_checkboxes()
-
-        # Create a label to show the updated list
-        list_label = tk.Label(window, text=f"Current list: {item_list}")
-        list_label.pack(pady=10)
 
         window.mainloop()
      
