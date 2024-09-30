@@ -465,10 +465,10 @@ class InputPage(tk.Frame):
 
         def update_list():
             # Keep only the items that are checked (i.e., where investor_value.get() == 1)
-            self.controller.checked_investors = [item for i, item in enumerate(item_list) if vars[i].get() == 1]
+            self.controller.checked_investors = [item for i, item in enumerate(item_list, 1) if vars[i].get() == 1]
+            print(self.controller.checked_investors)
 
         def select_all():
-            print(f"select_all: {vars[0].get()}")
             if (vars[0].get() == 1):
                 self.controller.checked_investors = self.controller.investors
                 for i in checkboxes:
