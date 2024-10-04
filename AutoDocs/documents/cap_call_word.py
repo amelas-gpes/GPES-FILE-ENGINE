@@ -37,7 +37,7 @@ def show_doc_elements(doc):
                 print(f"  Cell: {cell.text}")
 
 
-def create_cap_call_pdf(doc, excel, fund_info, output_directory, logo_path):
+def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_directory, logo_path):
 
     wire_instructions = {
         "Bank Name:" : "Chase",
@@ -48,7 +48,7 @@ def create_cap_call_pdf(doc, excel, fund_info, output_directory, logo_path):
         "SWIFT Code:" : "CHASUS33 (International Wires)"
     }
 
-
+    #add logos to pages
     for section in doc.sections:
         header = section.header
         
@@ -76,7 +76,7 @@ def create_cap_call_pdf(doc, excel, fund_info, output_directory, logo_path):
 
     instructions = doc.tables[1]
 
-    #Fill in wire instructions
+    #Fill in wire instructions table
     for row in instructions.rows:
         if row.cells[0].text.strip():
             if str(row.cells[0].text.strip()) in wire_instructions:
@@ -91,9 +91,8 @@ def create_cap_call_pdf(doc, excel, fund_info, output_directory, logo_path):
     re = ' '.join(re[:3])
     change_text(doc, 21, "Re: " + re)
 
-    #6 columns
-    #change 3,4 if 1 is not empty
-    #Later, just check if [0] is aligned with a number in a hashmap
+
+    #Fill in fund info table
     table = doc.tables[2]
     
     for row in table.rows:
@@ -102,81 +101,23 @@ def create_cap_call_pdf(doc, excel, fund_info, output_directory, logo_path):
                 row.cells[2].text = "{:,}".format(fund_info[str(row.cells[0].text.strip())])
         
     
-
-    #go through each investors and create pdfs for them
-    allocation = pd.read_excel(excel, sheet_name = "Allocation", skiprows=1)
-    index = 5
-    while (str(allocation.at[index, "Partner Name"]) != "nan"):
-        #Gather info
-        inv_info = dict()
-
-        inv_info["Investor Name"] = str(allocation.at[index, "Partner Name"])
-        header.rows[0].cells[1].text = ""
-        header_inv_name = header.rows[0].cells[1].paragraphs[0].add_run(inv_info["Investor Name"])
-        header_inv_name.bold = True
-
-
-
-
-        change_text(doc, 20, "Investor: " + inv_info["Investor Name"])
-
-        #investments = int(allocation.at[index, "Investment #1"])
-        inv_info["Investment"] = int(allocation.at[index, "Investment #1"])
-
-        #mgmt_fees = int(allocation.at[index, "Gross Mgmt Fee"])
-        inv_info["Management Fees"] = int(allocation.at[index, "Gross Mgmt Fee"])
-
-        #pshp_exp = int(allocation.at[index, "Pshp Exp"])
-        inv_info["Partnership Expenses"] = int(allocation.at[index, "Pshp Exp"])
-
-        total_amnt = int(allocation.at[index, "Net Amount Due / (Payable)"])
-        inv_info["Total Amount Due"] = int(allocation.at[index, "Net Amount Due / (Payable)"])
-
-        cap_commit = int(allocation.at[index, "Commitment"])
-        inv_info["Capital Commitment"] = int(allocation.at[index, "Commitment"])
-
-        cum_cap_contributions = int(allocation.at[index, "LTD Ending Contributions"])
-        inv_info["Cumulative Capital Contributions"] = int(allocation.at[index, "LTD Ending Contributions"])
-
-        rem_cap_commit = int(allocation.at[index, "Ending Remaining  Commitment"])
-        inv_info["Remaining Capital Commitment"] = int(allocation.at[index, "Ending Remaining  Commitment"])
-
-
-        commit_subj_mgmt_fee = int(allocation.at[index, "LP Commitment"])
-        inv_info["Commitment subject to Management Fee"] = int(allocation.at[index, "LP Commitment"])
-
-        mgmt_fee = int(allocation.at[index, "Gross Mgmt Fee"])
-        inv_info["Management Fee (1/1/2022 - 3/31/2022)"] = int(allocation.at[index, "Gross Mgmt Fee"])
-
-        mgmt_fee_reduct = int(allocation.at[index, "Mgmt Fee - Offsets"])
-        inv_info["Management Fee Reduction"] = int(allocation.at[index, "Mgmt Fee - Offsets"])
-
-        total_mgmt_fee = int(allocation.at[index, "Total Mgmt Fee"])
-        inv_info["Total Management Fee, net"] = int(allocation.at[index, "Total Mgmt Fee"])
-
-
-        #Fill in the info
-        instructions.rows[7].cells[1].text = inv_info["Investor Name"]
-        message = f"""Your portion of the call is ${inv_info["Total Amount Due"]:,} and is due on {fund_info["Due Date"]}.  Please send your payment by wire transfer in accordance with the instructions provided below."""
-        change_text(doc, 7, message)
-
-        for row in table.rows:
-            if row.cells[0].text.strip():
-                if str(row.cells[0].text.strip()) in inv_info:
-                    row.cells[5].text = "{:,}".format(inv_info[str(row.cells[0].text.strip())])
-
-        print(output_directory)
-
-        investor_docx = os.path.join(output_directory, f"{inv_info['Investor Name']}.docx")
-        investor_pdf = os.path.join(output_directory, f"{inv_info['Investor Name']}.pdf")
-        doc.save(investor_docx)
-
-        # Convert the Word document to PDF
-        convert(investor_docx, investor_pdf)
-
-        os.remove(investor_docx)
-
-        index += 1
-        
-
+    header.rows[0].cells[1].text = ""
+    header_inv_name = header.rows[0].cells[1].paragraphs[0].add_run(inv_info["Investor Name"])
+    header_inv_name.bold = True
+    change_text(doc, 20, "Investor: " + inv_info["Investor Name"])
+    #Fill in the info
+    instructions.rows[7].cells[1].text = inv_info["Investor Name"]
+    message = f"""Your portion of the call is ${inv_info["Total Amount Due"]:,} and is due on {fund_info["Due Date"]}.  Please send your payment by wire transfer in accordance with the instructions provided below."""
+    change_text(doc, 7, message)
+    for row in table.rows:
+        if row.cells[0].text.strip():
+            if str(row.cells[0].text.strip()) in inv_info:
+                row.cells[5].text = "{:,}".format(inv_info[str(row.cells[0].text.strip())])
+    print(output_directory)
+    investor_docx = os.path.join(output_directory, f"{inv_info['Investor Name']}.docx")
+    investor_pdf = os.path.join(output_directory, f"{inv_info['Investor Name']}.pdf")
+    doc.save(investor_docx)
+    # Convert the Word document to PDF
+    convert(investor_docx, investor_pdf)
+    os.remove(investor_docx)
 
