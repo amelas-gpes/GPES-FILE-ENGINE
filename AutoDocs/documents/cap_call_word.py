@@ -22,7 +22,7 @@ def change_text(doc, position, message, font="Arial", size=10):
     new_run.font.name = font  # Set font to Arial
     new_run.font.size = Pt(size)   # Set font size to 12 points
 
-def parse_doc(doc):
+def show_doc_elements(doc):
     # Inspect paragraphs and runs
     for i, para in enumerate(doc.paragraphs):
         print(f"Paragraph {i}: {para.text}")
@@ -37,7 +37,7 @@ def parse_doc(doc):
                 print(f"  Cell: {cell.text}")
 
 
-def create_cap_call_pdf(doc, excel, fund_info, output_directory):
+def create_cap_call_pdf(doc, excel, fund_info, output_directory, logo_path):
 
     wire_instructions = {
         "Bank Name:" : "Chase",
@@ -55,9 +55,7 @@ def create_cap_call_pdf(doc, excel, fund_info, output_directory):
         header_paragraph = header.paragraphs[0]
         header_paragraph.clear()
 
-        ex = r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\button.png"
-        ex2 = r'C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\gpes-file-engine-crms\aea-logo.png'
-        header_paragraph.add_run().add_picture(ex2, width=Inches(1.5))  # Adjust the size as needed
+        header_paragraph.add_run().add_picture(logo_path, width=Inches(1.5))  # Adjust the size as needed
 
     #change header
     header = doc.tables[0]
@@ -182,12 +180,3 @@ def create_cap_call_pdf(doc, excel, fund_info, output_directory):
         
 
 
-if __name__ == "__main__":
-    excel = "New Client Allocation Template.xlsx"
-    doc = Document('cap_call_template.docx')
-    fund_info = parse_excel(excels)
-    
-    create_cap_call_pdf(doc, fund_info, "example_filled")
-
-    
-    

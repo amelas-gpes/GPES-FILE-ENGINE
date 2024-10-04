@@ -92,7 +92,7 @@ class MainApp(tk.Tk):
 
         if option == "Capital Call":
             doc = Document(r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\git\GPES-FILE-ENGINE\AutoDocs\documents\cap_call_template.docx")
-            create_cap_call_pdf(doc, excel_file_path, fund_info, output_directory)
+            create_cap_call_pdf(doc, excel_file_path, fund_info, output_directory, logo_path)
         
         print("PDF generation complete.")
     
