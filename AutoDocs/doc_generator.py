@@ -29,6 +29,13 @@ class MainApp(tk.Tk):
             self.label_file.config(text=f"Selected: {file_path}")
             self.selected_file.set(file_path)
 
+            allocation = pd.read_excel(file_path, sheet_name = "Allocation", skiprows=1)
+            index = 5
+            while (str(allocation.at[index, "Partner Name"]) != "nan"):
+                self.investors.add(str(allocation.at[index, "Partner Name"]))
+                index += 1
+            self.checked_investors = list(self.investors)
+            
             """
             df = pd.read_excel(file_path, sheet_name = "Investor")
             investor_col = df["Legal Name"]
@@ -36,6 +43,8 @@ class MainApp(tk.Tk):
                 self.investors.add(i)
             self.checked_investors = list(self.investors)
             """
+
+
 
     def select_logo(self):
         logo_path = filedialog.askopenfilename(
@@ -90,10 +99,64 @@ class MainApp(tk.Tk):
         print(excel_file_path)
         fund_info = parse_excel(excel_file_path)
 
-        if option == "Capital Call":
-            doc = Document(r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\git\GPES-FILE-ENGINE\AutoDocs\documents\cap_call_template.docx")
-            create_cap_call_pdf(doc, excel_file_path, fund_info, output_directory, logo_path)
+        #go through each investors and create pdfs for them
+        allocation = pd.read_excel(excel_file_path, sheet_name = "Allocation", skiprows=1)
+        index = 5
+        while (str(allocation.at[index, "Partner Name"]) != "nan"):
+            if (str(allocation.at[index, "Partner Name"]) not in self.checked_investors):
+                index += 1
+                continue
+            
+            #Gather info
+            inv_info = dict()
+
+            inv_info["Investor Name"] = str(allocation.at[index, "Partner Name"])
+
+            #investments = int(allocation.at[index, "Investment #1"])
+            inv_info["Investment"] = int(allocation.at[index, "Investment #1"])
+
+            #mgmt_fees = int(allocation.at[index, "Gross Mgmt Fee"])
+            inv_info["Management Fees"] = int(allocation.at[index, "Gross Mgmt Fee"])
+
+            #pshp_exp = int(allocation.at[index, "Pshp Exp"])
+            inv_info["Partnership Expenses"] = int(allocation.at[index, "Pshp Exp"])
+
+            total_amnt = int(allocation.at[index, "Net Amount Due / (Payable)"])
+            inv_info["Total Amount Due"] = int(allocation.at[index, "Net Amount Due / (Payable)"])
+
+            cap_commit = int(allocation.at[index, "Commitment"])
+            inv_info["Capital Commitment"] = int(allocation.at[index, "Commitment"])
+
+            cum_cap_contributions = int(allocation.at[index, "LTD Ending Contributions"])
+            inv_info["Cumulative Capital Contributions"] = int(allocation.at[index, "LTD Ending Contributions"])
+
+            rem_cap_commit = int(allocation.at[index, "Ending Remaining  Commitment"])
+            inv_info["Remaining Capital Commitment"] = int(allocation.at[index, "Ending Remaining  Commitment"])
+
+            commit_subj_mgmt_fee = int(allocation.at[index, "LP Commitment"])
+            inv_info["Commitment subject to Management Fee"] = int(allocation.at[index, "LP Commitment"])
+
+            mgmt_fee = int(allocation.at[index, "Gross Mgmt Fee"])
+            inv_info["Management Fee (1/1/2022 - 3/31/2022)"] = int(allocation.at[index, "Gross Mgmt Fee"])
+
+            mgmt_fee_reduct = int(allocation.at[index, "Mgmt Fee - Offsets"])
+            inv_info["Management Fee Reduction"] = int(allocation.at[index, "Mgmt Fee - Offsets"])
+
+            total_mgmt_fee = int(allocation.at[index, "Total Mgmt Fee"])
+            inv_info["Total Management Fee, net"] = int(allocation.at[index, "Total Mgmt Fee"])
+
+            index += 1
+            
+            if option == "Capital Call":
+                doc = Document(r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\git\GPES-FILE-ENGINE\AutoDocs\documents\cap_call_template.docx")
+                create_cap_call_pdf(doc, excel_file_path, fund_info, inv_info, output_directory, logo_path)
+                investor_pdf = os.path.join(output_directory, f"{inv_info['Investor Name']}.pdf")
+                self.files_list.append(investor_pdf)
         
+        if (self.bulk_choice.get()):
+            self.run_merge()
+        self.files_list = []
+
         print("PDF generation complete.")
     
     def run_merge(self):
@@ -241,7 +304,7 @@ class InputPage(tk.Frame):
         frame_file = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_file.pack(padx=20, pady=20, fill="x")
 
-        label_file_title = tk.Label(frame_file, text="Select CRM Excel File", font=controller.font_label, bg="#e6e6e6")
+        label_file_title = tk.Label(frame_file, text="Select Excel File", font=controller.font_label, bg="#e6e6e6")
         label_file_title.pack(anchor="w")
 
         button_file = tk.Button(frame_file, text="Select File", command=controller.select_file, font=controller.font_button, bg="#4CAF50", fg="white")
@@ -270,7 +333,7 @@ class InputPage(tk.Frame):
         label_option_title = tk.Label(frame_option, text="Select An Option", font=controller.font_label, bg="#e6e6e6")
         label_option_title.pack(anchor="w")
 
-        options = ["Capital Call", "Distribution Notice", "GP Report", "Wire Instruction", "Quarterly Update", "K1 Document"]
+        options = ["Capital Call", "Distribution Notice"]
         controller.selected_option = tk.StringVar(self)
         controller.selected_option.set(options[0])
 
