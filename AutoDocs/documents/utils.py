@@ -18,6 +18,7 @@ import os  # For file path operations
 import re  # For regular expressions
 import shutil
 import fitz
+import glob
 
 def generate_bank_name():
     # List of banks to choose from

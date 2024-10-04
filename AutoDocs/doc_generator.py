@@ -72,12 +72,12 @@ class MainApp(tk.Tk):
         output_directory = self.selected_directory.get()
         option = self.selected_option.get()
 
-        """
+        
         if self.is_sample:
             output_directory = "./sample/"
         if self.is_sample:
             output_pdf_name = "sample.pdf"
-        """
+        
 
         if excel_file_path == "No file selected":
             print("No file selected")
@@ -150,9 +150,14 @@ class MainApp(tk.Tk):
             if option == "Capital Call":
                 doc = Document(r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\git\GPES-FILE-ENGINE\AutoDocs\documents\cap_call_template.docx")
                 create_cap_call_pdf(doc, excel_file_path, fund_info, inv_info, output_directory, logo_path)
-                investor_pdf = os.path.join(output_directory, f"{inv_info['Investor Name']}.pdf")
+                output_pdf_name = inv_info["Investor Name"]
+                investor_pdf = os.path.join(output_directory, f"{output_pdf_name}.pdf")
                 self.files_list.append(investor_pdf)
-        
+
+            if self.is_sample:
+                self.sample_ready = True
+                break
+
         if (self.bulk_choice.get()):
             self.run_merge()
         self.files_list = []
@@ -282,14 +287,22 @@ class InputPage(tk.Frame):
             controller.show_frame("OutputPage")
 
             
-            #controller.submit_action()
+            controller.submit_action()
 
-            # open pdf file
-            #file_name = r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\GPES-FILE-ENGINE\AutoDocs\output\wire_instructions\bulk.pdf"
-            file_name = "./sample/sample.pdf"
-            if not os.path.isfile(file_name):
+            # Define the path to the sample folder
+            folder_path = 'sample/'
+
+            # Use glob to find the file (assuming any file with any extension)
+            file_path = glob.glob(os.path.join(folder_path, '*'))  # Matches any file
+
+            # Ensure there is exactly one file
+            if len(file_path) == 1:
+                print(f"The file path is: {file_path[0]}")
+            else:
+                print("Error: Either no files or multiple files found in the folder.")
                 return
-            doc = fitz.open(file_name)
+
+            doc = fitz.open(file_path[0])
             sample_output(controller.frames["OutputPage"].frame_sample, doc)
             controller.is_sample = False
             
@@ -519,9 +532,18 @@ class OutputPage(tk.Frame):
 
 
 if __name__ == "__main__":
-    file_name = "./sample/sample.pdf"
-    if os.path.isfile(file_name):
-        os.remove(file_name)
+    # Define the path to the sample folder
+    folder_path = 'sample/'
+    # Use glob to find the file (assuming any file with any extension)
+    file_path = glob.glob(os.path.join(folder_path, '*'))  # Matches any fil
+    # Ensure there is exactly one file
+    if len(file_path) == 1:
+        print(f"The file path is: {file_path[0]}")
+    else:
+        print("Error: Either no files or multiple files found in the folder.")
+        
+    if os.path.isfile(file_path[0]):
+        os.remove(file_path[0])
 
     app = MainApp()
     app.mainloop()
