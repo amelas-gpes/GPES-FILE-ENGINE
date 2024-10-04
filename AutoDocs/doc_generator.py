@@ -4,6 +4,7 @@ from documents.gp_report import *
 from documents.wire_instruction import *
 from documents.distribution_notice import *
 from documents.k1_document import *
+from documents.cap_call_word import *
 
 from documents.utils import *
 
@@ -28,11 +29,13 @@ class MainApp(tk.Tk):
             self.label_file.config(text=f"Selected: {file_path}")
             self.selected_file.set(file_path)
 
+            """
             df = pd.read_excel(file_path, sheet_name = "Investor")
             investor_col = df["Legal Name"]
             for i in investor_col:
                 self.investors.add(i)
             self.checked_investors = list(self.investors)
+            """
 
     def select_logo(self):
         logo_path = filedialog.askopenfilename(
@@ -60,10 +63,12 @@ class MainApp(tk.Tk):
         output_directory = self.selected_directory.get()
         option = self.selected_option.get()
 
+        """
         if self.is_sample:
             output_directory = "./sample/"
         if self.is_sample:
             output_pdf_name = "sample.pdf"
+        """
 
         if excel_file_path == "No file selected":
             print("No file selected")
@@ -78,238 +83,16 @@ class MainApp(tk.Tk):
             print("No option selectes")
             return
 
-        # Read data from the selected Excel file
-        df = pd.read_excel(excel_file_path, sheet_name = "Investor")
+        color = "#515154"
+        if self.is_sample:
+            color = "#ff4e28"
 
+        print(excel_file_path)
+        fund_info = parse_excel(excel_file_path)
 
-        # Get current quarter and year for filename
-        now = datetime.now()
-        quarter = (now.month - 1) // 3 + 1
-        quarter_str = f"Q{quarter} {now.year - 1}"
-
-        funds = {}
-        fund_names = set()
-
-        # Iterate over each row in the DataFrame to gather all the funds
-        for index, row in df.iterrows():
-            fund_names.add(str(row["Fund Name"]))
-        
-        fund_names = list(fund_names)
-
-
-        # Iterate over each row in the DataFrame
-        for index, row in df.iterrows():
-            investing_entity_name = str(row["Fund Name"]) 
-            investor_code = str(row["Investor Code"])  
-            legal_name = str(row["Legal Name"]) 
-            address_1 = str(row["Address 1"])
-            address_2 = str(row["Address 2"])
-            city = str(row["City"])
-            state = str(row["State"])
-            zip_code = str(row["Zip"])
-            country = str(row["Country"])
-            tax_id = str(row["Tax ID"])
-            fund_name = str(row["Fund Name"])
-
-            # Check if investor was checked
-            if legal_name not in self.checked_investors:
-                continue
-
-            # Check if the logo path is relative or absolute
-            if not os.path.isabs(logo_path):
-                # If relative, construct the full path relative to the Excel file's directory
-                logo_path = os.path.join(os.path.dirname(excel_file_path), logo_path)
-
-            # Verify that the logo file exists
-            if not os.path.isfile(logo_path):
-                print(f"Logo file '{logo_path}' not found. Skipping {legal_name}.")
-                continue
-
-            # Sanitize investor code and legal name for filenames
-            investor_code_safe = sanitize_filename(investor_code)
-            fund_code_safe = sanitize_filename(investor_code[4:])
-            legal_name_safe = sanitize_filename(legal_name)
-            output_pdf_path = ""
-
-            text_to_add = {
-                "logo" : logo_path,
-                "legal_name" : legal_name,
-                "footer" : f"{fund_name}, {address_1}, {city}, {state} {zip_code}",
-                "date" : datetime.now().strftime("%B %d, %Y"),
-                "fund_name" : fund_name,
-                "address_1" : address_1
-            }
-
-            
-            # Try-except block to catch exceptions
-            try:
-                #capital call
-                if option == "Capital Call":
-                    if not self.is_sample:
-                        output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - Capital Call.pdf"
-                    output_pdf_path = os.path.join(output_directory, output_pdf_name)
-
-                    if self.is_sample:
-                        create_capital_call_pdf(
-                            output_pdf_path,
-                            investing_entity_name,
-                            legal_name,
-                            logo_path,
-                            "#ff4e28"
-                        )
-                    else:
-                        create_capital_call_pdf(
-                            output_pdf_path,
-                            investing_entity_name,
-                            legal_name,
-                            logo_path
-                        )
-
-                    self.files_list.append(output_pdf_path)
-
-                
-                #k1 document
-                elif option == "K1 Document":
-                    if not self.is_sample:
-                        output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - K1.pdf"
-            
-                    output_pdf_path = os.path.join(output_directory, output_pdf_name)
-
-                    create_k1_document_pdf(fund_name, legal_name, output_pdf_path)
-
-                    self.files_list.append(output_pdf_path)
-
-                #quarterly update
-                elif option == "Quarterly Update":
-                    #if fund has already been encountered, skip it
-                    if (fund_name in funds):
-                        continue
-                    funds[fund_name] = 1
-
-                    output_pdf_name_page1 = f"{fund_code_safe} Quarterly Update Page - {quarter_str}.pdf"
-                    output_pdf_path_page1 = os.path.join(output_directory, output_pdf_name_page1)
-
-                    create_quarterly_update_pdf(
-                        output_pdf_path_page1,
-                        investing_entity_name,
-                        legal_name,
-                        logo_path
-                    )
-
-                    texts_with_positions = [
-                        (fund_name, (30, 760))
-                    ]
-
-                    output_pdf_name_page2 = f"{fund_code_safe} Quarterly Update Page2 - {quarter_str}.pdf"
-                    output_pdf_path_page2 = os.path.join(output_directory, output_pdf_name_page2)
-                    add_multiple_texts_to_existing_pdf("documents/quarterly_update_template.pdf", output_pdf_path_page2, texts_with_positions)
-
-                    if not self.is_sample:
-                        output_pdf_name = f"{fund_code_safe}_{fund_name} - Quarterly Update.pdf"
-                    output_pdf_path = os.path.join(output_directory, output_pdf_name)
-
-                    # Step 1: Open the two PDFs
-                    with open(output_pdf_path_page1, "rb") as file1, open(output_pdf_path_page2, "rb") as file2:
-                        reader1 = PyPDF2.PdfReader(file1)
-                        reader2 = PyPDF2.PdfReader(file2)
-
-                        # Step 2: Create a PdfWriter object to hold the combined PDFs
-                        writer = PyPDF2.PdfWriter()
-
-                        # Step 3: Add pages from the first PDF
-                        for page_num in range(len(reader1.pages)):
-                            page = reader1.pages[page_num]
-                            writer.add_page(page)
-
-                        # Step 4: Add pages from the second PDF
-                        for page_num in range(len(reader2.pages)):
-                            page = reader2.pages[page_num]
-                            writer.add_page(page)
-
-                        # Step 5: Write the combined PDF to a new file
-                        with open(output_pdf_path, "wb") as output_file:
-                            writer.write(output_file)
-
-                    # Step 6: Delete the original PDFs
-                    os.remove(output_pdf_path_page1)
-                    os.remove(output_pdf_path_page2)
-
-                    self.files_list.append(output_pdf_path)
-                    
-                #gp report
-                elif option == "GP Report":
-                    #if fund has already been encountered, skip it
-                    if (fund_name in funds):
-                        continue
-                    funds[fund_name] = 1
-
-                    if not self.is_sample:
-                        output_pdf_name = f"{fund_code_safe}_{fund_name} - GP Report.pdf"
-
-                    output_pdf_path = os.path.join(output_directory, output_pdf_name)
-
-                    footer = f"{investing_entity_name}, {address_1}, {city}, {state}, {zip_code}"
-                    create_gp_report_pdf(
-                        output_pdf_path,
-                        investing_entity_name,
-                        legal_name,
-                        logo_path,
-                        fund_names,
-                        footer)
-
-                    self.files_list.append(output_pdf_path)
-
-                #wire instruction confirmation
-                elif option == "Wire Instruction":
-                    if not self.is_sample:
-                        output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - Wire Instructions.pdf"
-
-                    output_pdf_path = os.path.join(output_directory, output_pdf_name)
-
-                    create_wire_instruction_pdf(text_to_add, output_pdf_path)
-
-                    self.files_list.append(output_pdf_path)
-
-                #distribution notice
-                elif option == "Distribution Notice":
-                    if not self.is_sample:
-                        output_pdf_name = f"{investor_code_safe}_{legal_name_safe} - {fund_name} - Distribution Notice.pdf"
-
-                    output_pdf_path = os.path.join(output_directory, output_pdf_name)
-
-                    text_to_add = {
-                            "logo" : logo_path,
-                            "legal_name" : legal_name_safe,
-                            "date" : datetime.now().strftime("%B %d, %Y"),
-                            "fund_name" : fund_name,
-                            "address_1" : address_1,
-                            "state" : state,
-                            "city" : city,
-                            "zip_code" : zip_code,
-                        }
-
-                    create_distribution_notice_pdf(text_to_add, output_pdf_path)
-
-                    self.files_list.append(output_pdf_path)
-
-                
-                print(f"Generating PDF for {legal_name} at {output_pdf_path}")
-                    
-            except PermissionError as e:
-                print(f"Failed to write PDF for {legal_name}: {e}")
-            except Exception as e:
-                print(f"An error occurred while generating PDF for {legal_name}: {e}")
-
-            if self.is_sample:
-                self.sample_ready = True
-                self.files_list = []
-                break
-            
-
-        if (self.bulk_choice.get()):
-            self.run_merge()
-        self.files_list = []
-        
+        if option == "Capital Call":
+            doc = Document(r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\git\GPES-FILE-ENGINE\AutoDocs\documents\cap_call_template.docx")
+            create_cap_call_pdf(doc, excel_file_path, fund_info, output_directory)
         
         print("PDF generation complete.")
     
@@ -398,8 +181,6 @@ class MainApp(tk.Tk):
 
         self.files_list = []
 
-        self.sample_ready = False
-
         # Define font and styling options
         self.font_label = ("Helvetica", 12)
         self.font_button = ("Helvetica", 12, "bold")
@@ -434,9 +215,11 @@ class InputPage(tk.Frame):
     def __init__(self, parent, controller):
         def on_next():
             controller.is_sample = True
-
+        
             controller.show_frame("OutputPage")
-            controller.submit_action()
+
+            
+            #controller.submit_action()
 
             # open pdf file
             #file_name = r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\GPES-FILE-ENGINE\AutoDocs\output\wire_instructions\bulk.pdf"
@@ -446,6 +229,7 @@ class InputPage(tk.Frame):
             doc = fitz.open(file_name)
             sample_output(controller.frames["OutputPage"].frame_sample, doc)
             controller.is_sample = False
+            
 
         super().__init__(parent)
         self.controller = controller
@@ -501,6 +285,7 @@ class InputPage(tk.Frame):
         frame_investors = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_investors.pack(padx=20, pady=20, fill="x")
 
+        self.select_all = True
         investors_button = tk.Button(frame_investors, text="Select Investors", command=self.show_investors)
         investors_button.pack()
         
@@ -526,17 +311,16 @@ class InputPage(tk.Frame):
                 self.controller.checked_investors = self.controller.investors
                 for i in checkboxes:
                     i.select()
-
+                self.select_all = True
             else:
                 self.controller.checked_investors = []
                 for i in checkboxes:
                     i.deselect()
-
-            
+                self.select_all = False
 
         def create_checkboxes():
             # Create checkbox for selecting all
-            select_value = tk.IntVar(value=1)
+            select_value = tk.IntVar(value=self.select_all)
             vars.append(select_value)
             checkbox = tk.Checkbutton(scrollable_frame, text="Select All", variable=select_value, command=select_all)
             checkbox.pack(anchor="w", pady=5)
