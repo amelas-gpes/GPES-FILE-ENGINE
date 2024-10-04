@@ -57,7 +57,7 @@ def sample_output(root, doc):
 
             # Set canvas size to image size
             canvas.config(scrollregion=canvas.bbox("all"))
-            #canvas.config(width=img_tk.width(), height=img_tk.height())
+            canvas.config(width=img_tk.width(), height=img_tk.height())
 
             # Keep a reference to the image to prevent garbage collection
             image_reference = img_tk
