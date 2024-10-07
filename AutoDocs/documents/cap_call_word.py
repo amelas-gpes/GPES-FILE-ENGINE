@@ -7,7 +7,8 @@ import pandas as pd
 import os
 
 from docx2pdf import convert
-import time
+from docx.shared import RGBColor
+
 
 def change_text(doc, position, message, font="Arial", size=10):
     # Access the specific paragraph you want to replace (e.g., the 3rd paragraph)
@@ -118,15 +119,27 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path)
         if row.cells[0].text.strip():
             if str(row.cells[0].text.strip()) in inv_info:
                 row.cells[5].text = "{:,}".format(inv_info[str(row.cells[0].text.strip())])
-                
+
+
+    # add delimiters
+    # Create the new paragraph
+    new_paragraph = doc.add_paragraph()
+
+    # Add the text to the paragraph
+    run = new_paragraph.add_run(f"{fund_info["Start Delim"]} {fund_info["End Delim"]}")
+
+    # Set the text color to white (RGB for white is 255, 255, 255)
+    run.font.color.rgb = RGBColor(255, 255, 255)
+
+    # Move the newly added paragraph to the desired index
+    doc._body._element.insert(7, new_paragraph._element)
+
     print(output_path)
     investor_docx = output_path + ".docx"
     investor_pdf = output_path + ".pdf"
     doc.save(investor_docx)
     # Convert the Word document to PDF
     convert(investor_docx, investor_pdf)
-
-    time.sleep(1)
 
     os.remove(investor_docx)
 
