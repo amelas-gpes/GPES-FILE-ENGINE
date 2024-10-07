@@ -65,19 +65,19 @@ class MainApp(tk.Tk):
         self.label_option.config(text=f"Selected option: {choice}")
 
     def submit_action(self):
-        print(self.checked_investors)
-        
         excel_file_path = self.selected_file.get()
         logo_path = self.selected_logo.get()
         output_directory = self.selected_directory.get()
         option = self.selected_option.get()
 
+        first_name = self.first_name.get()
+        last_name = self.last_name.get()
+        email = self.email.get()
+
         
         if self.is_sample:
             output_directory = "./sample/"
-        if self.is_sample:
-            output_pdf_name = "sample.pdf"
-        
+
 
         if excel_file_path == "No file selected":
             print("No file selected")
@@ -91,6 +91,16 @@ class MainApp(tk.Tk):
         if option == "No option selected":
             print("No option selectes")
             return
+        if first_name == "":
+            print("No first name given")
+            return
+        if last_name == "":
+            print("No last name given")
+            return
+        if email == "":
+            print("No email given")
+            return
+        
 
         color = "#515154"
         if self.is_sample:
@@ -145,14 +155,24 @@ class MainApp(tk.Tk):
             total_mgmt_fee = int(allocation.at[index, "Total Mgmt Fee"])
             inv_info["Total Management Fee, net"] = int(allocation.at[index, "Total Mgmt Fee"])
 
+            inv_info["First Name"] = first_name
+            inv_info["Last Name"] = last_name
+            inv_info["Email"] = email
+
             index += 1
             
             if option == "Capital Call":
                 doc = Document(r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\git\GPES-FILE-ENGINE\AutoDocs\documents\cap_call_template.docx")
-                create_cap_call_pdf(doc, excel_file_path, fund_info, inv_info, output_directory, logo_path)
+                
                 output_pdf_name = inv_info["Investor Name"]
-                investor_pdf = os.path.join(output_directory, f"{output_pdf_name}.pdf")
-                self.files_list.append(investor_pdf)
+                if self.is_sample:
+                    output_pdf_name = "sample"
+
+                output_path = os.path.join(output_directory, f"{output_pdf_name}")
+                if not self.is_sample:
+                    self.files_list.append(output_path)
+
+                create_cap_call_pdf(doc, excel_file_path, fund_info, inv_info, output_path, logo_path)
 
             if self.is_sample:
                 self.sample_ready = True
@@ -230,6 +250,9 @@ class MainApp(tk.Tk):
         self.selected_file = tk.StringVar(self, value="No file selected")
         self.selected_logo = tk.StringVar(self, value="No logo selected")
         self.selected_directory = tk.StringVar(self, value="No directory selected")
+        self.first_name = tk.StringVar(self, value="")
+        self.last_name = tk.StringVar(self, value="")
+        self.email = tk.StringVar(self, value="")
 
         self.label_file = ""
         self.label_logo = ""
@@ -286,11 +309,16 @@ class InputPage(tk.Frame):
         
             controller.show_frame("OutputPage")
 
-            
-            controller.submit_action()
-
             # Define the path to the sample folder
             folder_path = 'sample/'
+
+            # Use glob to find the file (assuming any file with any extension)
+            file_path = glob.glob(os.path.join(folder_path, '*'))  # Matches any file
+            
+            if (len(file_path) == 1):
+                os.remove(file_path[0])
+
+            controller.submit_action()
 
             # Use glob to find the file (assuming any file with any extension)
             file_path = glob.glob(os.path.join(folder_path, '*'))  # Matches any file
@@ -302,8 +330,8 @@ class InputPage(tk.Frame):
                 print("Error: Either no files or multiple files found in the folder.")
                 return
 
-            doc = fitz.open(file_path[0])
-            sample_output(controller.frames["OutputPage"].frame_sample, doc)
+            sample_output(controller.frames["OutputPage"].frame_sample, file_path[0])
+
             controller.is_sample = False
             
 
@@ -356,6 +384,36 @@ class InputPage(tk.Frame):
 
         controller.label_option = tk.Label(frame_option, text="No option selected", bg="#e6e6e6", font=controller.font_label)
         controller.label_option.pack(side="left", padx=10)
+
+
+        # Frame for contact info
+        frame_contacts = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_contacts.pack(padx=20, pady=20, fill="x")
+
+        label_contacts = tk.Label(frame_contacts, text="Contact Info", font=controller.font_label, bg="#e6e6e6")
+        label_contacts.pack(anchor="w")
+
+        # First Name
+        label_first_name = tk.Label(frame_contacts, text="First Name: ", font=controller.font_label, bg="#e6e6e6")
+        label_first_name.pack(anchor="w", pady=(10, 0))  # Place the label at the top-left
+
+        first_name_entry = tk.Entry(frame_contacts, textvariable=controller.first_name)
+        first_name_entry.pack(anchor="w", fill="x")  # Fill horizontally
+
+        # Last Name
+        label_last_name = tk.Label(frame_contacts, text="Last Name: ", font=controller.font_label, bg="#e6e6e6")
+        label_last_name.pack(anchor="w", pady=(10, 0))  # Space between first and last name
+
+        last_name_entry = tk.Entry(frame_contacts, textvariable=controller.last_name)
+        last_name_entry.pack(anchor="w", fill="x")  # Fill horizontally
+
+        # Email
+        label_email = tk.Label(frame_contacts, text="Email: ", font=controller.font_label, bg="#e6e6e6")
+        label_email.pack(anchor="w", pady=(10,0))
+
+        email_entry = tk.Entry(frame_contacts, textvariable=controller.email)
+        email_entry.pack(anchor="w", fill="x")
+
 
         # Frame for the investors input
         frame_investors = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
@@ -542,7 +600,7 @@ if __name__ == "__main__":
     else:
         print("Error: Either no files or multiple files found in the folder.")
         
-    if os.path.isfile(file_path[0]):
+    if len(file_path) == 1:
         os.remove(file_path[0])
 
     app = MainApp()
