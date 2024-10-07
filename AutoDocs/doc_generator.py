@@ -14,7 +14,7 @@ from tkinter import filedialog
 import os
 import tkinter as tk
 from tkinter import filedialog
-from PyPDF2 import PdfReader, PdfWriter
+from PyPDF2 import PdfReader, PdfWriter, PdfMerger
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import white
 from reportlab.lib.units import inch
@@ -74,6 +74,8 @@ class MainApp(tk.Tk):
         last_name = self.last_name.get()
         email = self.email.get()
 
+        start_delim = self.start_delimiter.get()
+        end_delim = self.end_delimiter.get()
         
         if self.is_sample:
             output_directory = "./sample/"
@@ -108,6 +110,9 @@ class MainApp(tk.Tk):
 
         print(excel_file_path)
         fund_info = parse_excel(excel_file_path)
+        fund_info["Start Delim"] = start_delim
+        fund_info["End Delim"] = end_delim
+
 
         #go through each investors and create pdfs for them
         allocation = pd.read_excel(excel_file_path, sheet_name = "Allocation", skiprows=1)
@@ -170,7 +175,7 @@ class MainApp(tk.Tk):
 
                 output_path = os.path.join(output_directory, f"{output_pdf_name}")
                 if not self.is_sample:
-                    self.files_list.append(output_path)
+                    self.files_list.append(output_path+".pdf")
 
                 create_cap_call_pdf(doc, excel_file_path, fund_info, inv_info, output_path, logo_path)
 
@@ -179,65 +184,35 @@ class MainApp(tk.Tk):
                 break
 
         if (self.bulk_choice.get()):
-            self.run_merge()
+            self.merge_pdfs_in_folder(output_directory, "bulk.pdf")
+
         self.files_list = []
-
         print("PDF generation complete.")
-    
-    def run_merge(self):
-        start_delim = self.start_delimiter.get()
-        end_delim = self.end_delimiter.get()
-        output_filename = self.output_file.get()
-        output_dir = self.selected_directory.get()
-        if not self.files_list or not start_delim or not end_delim or not output_filename or not output_dir:
-            print("Please fill all fields")
-            return
-        if not output_filename.lower().endswith('.pdf'):
-            output_filename += '.pdf'
-        output_path = os.path.join(output_dir, output_filename)
-        self.merge_pdfs(self.files_list, start_delim, end_delim, output_path)
 
-    def merge_pdfs(self, files, start_delim, end_delim, output_path):
-        pdf_writer = PdfWriter()
-        # files is a tuple of file paths
-        files = list(files)
-        files.sort()  # Optional: sort files alphabetically
-        for filepath in files:
-            filename = os.path.basename(filepath)
-            investor_code = filename.split('_')[0]
-            full_code = f"{start_delim}{investor_code}{end_delim}"
-            pdf_reader = PdfReader(filepath)
-            num_pages = len(pdf_reader.pages)
-            for page_num in range(num_pages):
-                page = pdf_reader.pages[page_num]
-                width = float(page.mediabox.width)
-                height = float(page.mediabox.height)
-                packet = BytesIO()
-                # Create a new PDF with ReportLab
-                can = canvas.Canvas(packet, pagesize=(width, height))
-                can.setFillColor(white)
-                # Place the text at top-right corner
-                margin = inch * 0.5  # Half an inch margin
-                text_width = can.stringWidth(full_code)
-                x = width - text_width - margin
-                y = height - margin
-                can.drawString(x, y, full_code)
-                can.save()
-                # Move to the beginning of the StringIO buffer
-                packet.seek(0)
-                overlay_pdf = PdfReader(packet)
-                overlay_page = overlay_pdf.pages[0]
-                page.merge_page(overlay_page)
-                pdf_writer.add_page(page)
+    def merge_pdfs_in_folder(self, folder_path, output_filename):
+        # Create a PdfMerger object
+        merger = PdfMerger()
 
-            if (self.split_choice.get()):
-                continue
-            os.remove(filepath)
+        # Loop through all the files in the folder
+        for filename in sorted(os.listdir(folder_path)):
+            if filename.endswith(".pdf"):
+                file_path = os.path.join(folder_path, filename)
+                # Append each PDF to the merger
+                with open(file_path, 'rb') as pdf_file:
+                    merger.append(pdf_file)
+                if (not self.split_choice.get()):
+                    os.remove(file_path)
 
-        with open(output_path, 'wb') as out_file:
-            pdf_writer.write(out_file)
-        print(f"Merged PDF saved as {output_path}")
-    
+        # Write the merged PDF to a new file
+        output_path = os.path.join(folder_path, output_filename)
+        with open(output_path, 'wb') as output_file:
+            merger.write(output_file)
+
+        # Close the merger
+        merger.close()
+
+        print(f"All PDFs merged into {output_filename}")
+
 
     def __init__(self):
         super().__init__()
