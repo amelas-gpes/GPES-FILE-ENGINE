@@ -7,6 +7,7 @@ import pandas as pd
 import os
 
 from docx2pdf import convert
+import time
 
 def change_text(doc, position, message, font="Arial", size=10):
     # Access the specific paragraph you want to replace (e.g., the 3rd paragraph)
@@ -37,7 +38,7 @@ def show_doc_elements(doc):
                 print(f"  Cell: {cell.text}")
 
 
-def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_directory, logo_path):
+def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path):
 
     wire_instructions = {
         "Bank Name:" : "Chase",
@@ -109,15 +110,23 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_directory, logo_
     instructions.rows[7].cells[1].text = inv_info["Investor Name"]
     message = f"""Your portion of the call is ${inv_info["Total Amount Due"]:,} and is due on {fund_info["Due Date"]}.  Please send your payment by wire transfer in accordance with the instructions provided below."""
     change_text(doc, 7, message)
+
+    message = f"""Should  you  have  any  questions  on  this  notice,  please  do  not  hesitate  to  contact  {inv_info["First Name"]} {inv_info["Last Name"]}  at {inv_info["Email"]}. """
+    change_text(doc, 10, message)
+
     for row in table.rows:
         if row.cells[0].text.strip():
             if str(row.cells[0].text.strip()) in inv_info:
                 row.cells[5].text = "{:,}".format(inv_info[str(row.cells[0].text.strip())])
-    print(output_directory)
-    investor_docx = os.path.join(output_directory, f"{inv_info['Investor Name']}.docx")
-    investor_pdf = os.path.join(output_directory, f"{inv_info['Investor Name']}.pdf")
+                
+    print(output_path)
+    investor_docx = output_path + ".docx"
+    investor_pdf = output_path + ".pdf"
     doc.save(investor_docx)
     # Convert the Word document to PDF
     convert(investor_docx, investor_pdf)
+
+    time.sleep(1)
+
     os.remove(investor_docx)
 
