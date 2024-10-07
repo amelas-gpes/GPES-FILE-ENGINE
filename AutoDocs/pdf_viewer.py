@@ -2,7 +2,7 @@ import fitz
 from tkinter import *
 from PIL import Image, ImageTk
 
-def sample_output(root, doc):
+def sample_output(root, file_name):
     for widget in root.winfo_children():
         widget.destroy()
 
@@ -10,8 +10,10 @@ def sample_output(root, doc):
     zoom = 1
     mat = fitz.Matrix(zoom, zoom)
 
-    # count number of pages
+    # open the document to count the number of pages
+    doc = fitz.open(file_name)
     num_pages = len(doc)
+    doc.close()
 
     # add scroll bar
     scrollbar = Scrollbar(root)
@@ -31,8 +33,9 @@ def sample_output(root, doc):
     image_reference = None
 
     def pdf_to_img(page_num):
-        page = doc.load_page(page_num)
-        pix = page.get_pixmap(matrix=mat)
+        with fitz.open(file_name) as doc:
+            page = doc.load_page(page_num)
+            pix = page.get_pixmap(matrix=mat)
         return Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
     def show_image():
@@ -84,16 +87,13 @@ if __name__ == "__main__":
     root = Tk()
     root.geometry('750x700')
 
-    # open pdf file
+    # specify the PDF file path
     file_name = r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\GPES-FILE-ENGINE\AutoDocs\output\quarterly_updates\bulk.pdf"
-    doc = fitz.open(file_name)
-
 
     # Create a frame to show sample pdf
     frame_sample = Frame(root)
     frame_sample.pack()
 
-    sample_output(frame_sample, doc)
+    sample_output(frame_sample, file_name)
 
     root.mainloop()
-    doc.close()
