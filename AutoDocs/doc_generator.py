@@ -108,7 +108,6 @@ class MainApp(tk.Tk):
         if self.is_sample:
             color = "#ff4e28"
 
-        print(excel_file_path)
         fund_info = parse_excel(excel_file_path)
         fund_info["Start Delim"] = start_delim
         fund_info["End Delim"] = end_delim
@@ -280,35 +279,7 @@ class MainApp(tk.Tk):
 class InputPage(tk.Frame):
     def __init__(self, parent, controller):
         def on_next():
-            controller.is_sample = True
-        
             controller.show_frame("OutputPage")
-
-            # Define the path to the sample folder
-            folder_path = 'sample/'
-
-            # Use glob to find the file (assuming any file with any extension)
-            file_path = glob.glob(os.path.join(folder_path, '*'))  # Matches any file
-            
-            if (len(file_path) == 1):
-                os.remove(file_path[0])
-
-            controller.submit_action()
-
-            # Use glob to find the file (assuming any file with any extension)
-            file_path = glob.glob(os.path.join(folder_path, '*'))  # Matches any file
-
-            # Ensure there is exactly one file
-            if len(file_path) == 1:
-                print(f"The file path is: {file_path[0]}")
-            else:
-                print("Error: Either no files or multiple files found in the folder.")
-                return
-
-            sample_output(controller.frames["OutputPage"].frame_sample, file_path[0])
-
-            controller.is_sample = False
-            
 
         super().__init__(parent)
         self.controller = controller
@@ -413,7 +384,6 @@ class InputPage(tk.Frame):
         def update_list():
             # Keep only the items that are checked (i.e., where investor_value.get() == 1)
             self.controller.checked_investors = [item for i, item in enumerate(item_list, 1) if vars[i].get() == 1]
-            print(self.controller.checked_investors)
 
         def select_all():
             if (vars[0].get() == 1):
@@ -485,6 +455,11 @@ class InputPage(tk.Frame):
 
 class OutputPage(tk.Frame):
     def __init__(self, parent, controller):
+        def resize(event):
+            # Set the sash position to half of the current window width
+            paned_window.sash_place(0, self.winfo_width() // 2, 1)
+
+
         def toggle_bulk_entry():
             # Show or hide the entry widget based on the selected option
             if controller.bulk_choice.get():
@@ -492,12 +467,125 @@ class OutputPage(tk.Frame):
             else:
                 self.bulk_frame.pack_forget()
 
+        def create_sample():
+            controller.is_sample = True
+        
+            # Define the path to the sample folder
+            folder_path = 'sample/'
+
+            # Use glob to find the file (assuming any file with any extension)
+            file_path = glob.glob(os.path.join(folder_path, '*'))  # Matches any file
+            
+            if (len(file_path) == 1):
+                os.remove(file_path[0])
+
+            controller.submit_action()
+
+            # Use glob to find the file (assuming any file with any extension)
+            file_path = glob.glob(os.path.join(folder_path, '*'))  # Matches any file
+
+            # Ensure there is exactly one file
+            if len(file_path) == 1:
+                print(f"The file path is: {file_path[0]}")
+            else:
+                print("Error: Either no files or multiple files found in the folder.")
+                return
+
+            sample_output(controller.frames["OutputPage"].frame_sample, file_path[0])
+
+            controller.is_sample = False
+            
+
         super().__init__(parent)
         self.controller = controller
 
+        # Create a PanedWindow to split the window
+        paned_window = tk.PanedWindow(self, orient=tk.HORIZONTAL)
+        paned_window.pack(fill=tk.BOTH, expand=True)
+
+        # Create the left side with a sidebar and content area
+        content_frame = tk.Frame(paned_window, bg="lightblue")
+        paned_window.add(content_frame)
+
+        # Left content area (where the content will change)
+        left_frame = tk.Frame(content_frame, bg="lightblue")
+        left_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Create a frame for directory selection
+        frame_dir = tk.Frame(left_frame, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_dir.pack(padx=20, pady=20, fill="x")
+
+        label_dir_title = tk.Label(frame_dir, text="Select Where To Store Output PDF", font=controller.font_label, bg="#e6e6e6")
+        label_dir_title.pack(anchor="w")
+
+        button_dir = tk.Button(frame_dir, text="Select Output Directory", command=controller.select_directory, font=controller.font_button, bg="#4CAF50", fg="white")
+        button_dir.pack(side="left", padx=10, pady=5)
+
+        controller.label_dir = tk.Label(frame_dir, textvariable=controller.selected_directory, bg="#e6e6e6", font=controller.font_label)
+        controller.label_dir.pack(side="left", padx=10)
+
+        # Create a frame for choosing between split and bulk
+        frame_output_choice = tk.Frame(left_frame, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_output_choice.pack(padx=20, pady=20, fill="x")
+
+        label_options = tk.Label(frame_output_choice, text="Select Output Format", font=controller.font_label, bg="#e6e6e6")
+        label_options.pack(anchor="w")
+
+        split_option = tk.Checkbutton(frame_output_choice, text="Split", variable=controller.split_choice, command=toggle_bulk_entry)
+        bulk_option = tk.Checkbutton(frame_output_choice, text="Bulk", variable=controller.bulk_choice, command=toggle_bulk_entry)
+
+        split_option.pack(anchor="w")
+        bulk_option.pack(anchor="w")
+
+        frame_delimiters = tk.Frame(left_frame, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_delimiters.pack(padx=20, pady=20, fill="x")
+
+        tk.Label(frame_delimiters, text="Start Delimiter:").grid(row=1, column=0, padx=5, pady=5, sticky='e')
+
+        tk.Entry(frame_delimiters, textvariable=controller.start_delimiter).grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(frame_delimiters, text="End Delimiter:").grid(row=2, column=0, padx=5, pady=5, sticky='e')
+
+        tk.Entry(frame_delimiters, textvariable=controller.end_delimiter).grid(row=2, column=1, padx=5, pady=5)
+
+        # Create an Entry widget for bulk input, but don't pack it initially
+        self.bulk_frame = tk.Frame(frame_output_choice)
+
+        tk.Label(self.bulk_frame, text="Output File Name:").grid(row=3, column=0, padx=5, pady=5, sticky='e')
+        tk.Entry(self.bulk_frame, textvariable=controller.output_file).grid(row=3, column=1, padx=5, pady=5)
+
+        # Right side for displaying an image
+        self.frame_sample = tk.Frame(paned_window, bg="lightgreen")
+        sample_button = tk.Button(self.frame_sample, text="Create Sample", font=("Arial", 12), command=create_sample)
+        sample_button.pack()
+
+        paned_window.add(self.frame_sample)
+
+        # Bottom frame for navigation buttons
+        bottom_frame = tk.Frame(self, bg="lightgray", height=50)
+        bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # Add Back and Next buttons, and center them
+        back_button = tk.Button(bottom_frame, text="Back", font=("Arial", 12), command=lambda: controller.show_frame("InputPage"))
+        generate_button = tk.Button(bottom_frame, text="Generate", font=("Arial", 12), command = controller.submit_action)
+
+        # Use a frame to center both buttons in the middle of the bottom frame
+        button_frame = tk.Frame(bottom_frame, bg="lightgray")
+        button_frame.pack(expand=True)
+
+        # Pack buttons inside the center frame
+        back_button.pack(side=tk.LEFT, padx=10, pady=10)
+        generate_button.pack(side=tk.LEFT, padx=10, pady=10)
+
+        # Bind the window resize event to the resize function
+        self.bind("<Configure>", resize)
+
+        """
         label = tk.Label(self, text="GPES FileGen", font=('Arial', 16))
         label.pack(side="top", fill="x", pady=10)
+        """
 
+        """
         frame_left = tk.Frame(self)
         frame_left.pack(side = "left", fill = "both")
 
@@ -527,14 +615,19 @@ class OutputPage(tk.Frame):
         split_option.pack(anchor="w")
         bulk_option.pack(anchor="w")
 
+        frame_delimiters = tk.Frame(frame_left, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_delimiters.pack(padx=20, pady=20, fill="x")
+
+        tk.Label(frame_delimiters, text="Start Delimiter:").grid(row=1, column=0, padx=5, pady=5, sticky='e')
+
+        tk.Entry(frame_delimiters, textvariable=controller.start_delimiter).grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(frame_delimiters, text="End Delimiter:").grid(row=2, column=0, padx=5, pady=5, sticky='e')
+
+        tk.Entry(frame_delimiters, textvariable=controller.end_delimiter).grid(row=2, column=1, padx=5, pady=5)
+
         # Create an Entry widget for bulk input, but don't pack it initially
         self.bulk_frame = tk.Frame(frame_output_choice)
-
-        tk.Label(self.bulk_frame, text="Start Delimiter:").grid(row=1, column=0, padx=5, pady=5, sticky='e')
-        tk.Entry(self.bulk_frame, textvariable=controller.start_delimiter).grid(row=1, column=1, padx=5, pady=5)
-
-        tk.Label(self.bulk_frame, text="End Delimiter:").grid(row=2, column=0, padx=5, pady=5, sticky='e')
-        tk.Entry(self.bulk_frame, textvariable=controller.end_delimiter).grid(row=2, column=1, padx=5, pady=5)
 
         tk.Label(self.bulk_frame, text="Output File Name:").grid(row=3, column=0, padx=5, pady=5, sticky='e')
         tk.Entry(self.bulk_frame, textvariable=controller.output_file).grid(row=3, column=1, padx=5, pady=5)
@@ -559,7 +652,7 @@ class OutputPage(tk.Frame):
         submit_button = tk.Button(frame_buttons, text="Submit", command = controller.submit_action)
         submit_button.pack()
 
-        
+        """
 
 
 
