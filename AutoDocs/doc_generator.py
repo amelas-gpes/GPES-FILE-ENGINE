@@ -278,12 +278,10 @@ class MainApp(tk.Tk):
 
 class InputPage(tk.Frame):
     def __init__(self, parent, controller):
-        def on_next():
-            controller.show_frame("OutputPage")
-
         super().__init__(parent)
         self.controller = controller
-        
+
+
         label = tk.Label(self, text="GPES FileGen", font=('Arial', 16))
         label.pack(side="top", fill="x", pady=10)
 
@@ -369,9 +367,19 @@ class InputPage(tk.Frame):
         investors_button = tk.Button(frame_investors, text="Select Investors", command=self.show_investors)
         investors_button.pack()
         
-        # Button to go to next page
-        button1 = tk.Button(self, text="Next", command= on_next)
-        button1.pack()
+        # Bottom frame for navigation buttons
+        bottom_frame = tk.Frame(self, bg="lightgray", height=50)
+        bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # Add Back and Next buttons, and center them
+        next_button = tk.Button(bottom_frame, text="Next", font=("Arial", 12), command=lambda: controller.show_frame("OutputPage"))
+
+        # Use a frame to center both buttons in the middle of the bottom frame
+        button_frame = tk.Frame(bottom_frame, bg="lightgray")
+        button_frame.pack(expand=True)
+
+        # Pack buttons inside the center frame
+        next_button.pack(side=tk.LEFT, padx=10, pady=10)
 
     def show_investors(self):
         def on_frame_configure(event):
@@ -579,82 +587,6 @@ class OutputPage(tk.Frame):
 
         # Bind the window resize event to the resize function
         self.bind("<Configure>", resize)
-
-        """
-        label = tk.Label(self, text="GPES FileGen", font=('Arial', 16))
-        label.pack(side="top", fill="x", pady=10)
-        """
-
-        """
-        frame_left = tk.Frame(self)
-        frame_left.pack(side = "left", fill = "both")
-
-        # Create a frame for directory selection
-        frame_dir = tk.Frame(frame_left, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
-        frame_dir.pack(padx=20, pady=20, fill="x")
-
-        label_dir_title = tk.Label(frame_dir, text="Select Where To Store Output PDF", font=controller.font_label, bg="#e6e6e6")
-        label_dir_title.pack(anchor="w")
-
-        button_dir = tk.Button(frame_dir, text="Select Output Directory", command=controller.select_directory, font=controller.font_button, bg="#4CAF50", fg="white")
-        button_dir.pack(side="left", padx=10, pady=5)
-
-        controller.label_dir = tk.Label(frame_dir, textvariable=controller.selected_directory, bg="#e6e6e6", font=controller.font_label)
-        controller.label_dir.pack(side="left", padx=10)
-
-        # Create a frame for choosing between split and bulk
-        frame_output_choice = tk.Frame(frame_left, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
-        frame_output_choice.pack(padx=20, pady=20, fill="x")
-
-        label_options = tk.Label(frame_output_choice, text="Select Output Format", font=controller.font_label, bg="#e6e6e6")
-        label_options.pack(anchor="w")
-
-        split_option = tk.Checkbutton(frame_output_choice, text="Split", variable=controller.split_choice, command=toggle_bulk_entry)
-        bulk_option = tk.Checkbutton(frame_output_choice, text="Bulk", variable=controller.bulk_choice, command=toggle_bulk_entry)
-
-        split_option.pack(anchor="w")
-        bulk_option.pack(anchor="w")
-
-        frame_delimiters = tk.Frame(frame_left, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
-        frame_delimiters.pack(padx=20, pady=20, fill="x")
-
-        tk.Label(frame_delimiters, text="Start Delimiter:").grid(row=1, column=0, padx=5, pady=5, sticky='e')
-
-        tk.Entry(frame_delimiters, textvariable=controller.start_delimiter).grid(row=1, column=1, padx=5, pady=5)
-
-        tk.Label(frame_delimiters, text="End Delimiter:").grid(row=2, column=0, padx=5, pady=5, sticky='e')
-
-        tk.Entry(frame_delimiters, textvariable=controller.end_delimiter).grid(row=2, column=1, padx=5, pady=5)
-
-        # Create an Entry widget for bulk input, but don't pack it initially
-        self.bulk_frame = tk.Frame(frame_output_choice)
-
-        tk.Label(self.bulk_frame, text="Output File Name:").grid(row=3, column=0, padx=5, pady=5, sticky='e')
-        tk.Entry(self.bulk_frame, textvariable=controller.output_file).grid(row=3, column=1, padx=5, pady=5)
-
-
-        
-
-        # Create a frame to show sample pdf
-        self.frame_sample = Frame(self)
-        self.frame_sample.pack(side = "left", fill = "both")
-
-        
-
-        frame_buttons = tk.Frame(self)
-        frame_buttons.pack(side = "bottom", fill = "both")
-        # Button to go back a page
-        back_button = tk.Button(frame_buttons, text="Back",
-                                command=lambda: controller.show_frame("InputPage"))
-        back_button.pack()
-
-
-        submit_button = tk.Button(frame_buttons, text="Submit", command = controller.submit_action)
-        submit_button.pack()
-
-        """
-
-
 
 
 if __name__ == "__main__":
