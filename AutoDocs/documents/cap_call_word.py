@@ -38,9 +38,34 @@ def show_doc_elements(doc):
             for cell in row.cells:
                 print(f"  Cell: {cell.text}")
 
+def update_field(doc, field, position, replacements):
+    message = field.split()
 
-def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path):
+    #Change field1
+    modified_message = []
+    i = 0
+    endings = [".", ",", "!", "?", "..."]
+    while i < len(message):
+        ending = ""
+        if message[i][-1] in endings:
+            ending = message[i][-1]
+            message[i] = message[i][:-1]
 
+        if message[i] in replacements:
+            if ending != "":
+                modified_message.append(str(replacements[message[i]]) + ending)
+            else:
+                modified_message.append(str(replacements[message[i]]))
+            i += 1
+        else:
+            modified_message.append(message[i])
+            i += 1
+    
+    modified_message = " ".join(modified_message)
+
+    change_text(doc, position, modified_message)
+
+def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path, text_fields):
     wire_instructions = {
         "Bank Name:" : "Chase",
         "Bank Address:" : "277 Park Ave New York, NY 10172",
@@ -59,7 +84,7 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path)
 
         header_paragraph.add_run().add_picture(logo_path, width=Inches(1.5))  # Adjust the size as needed
 
-    #change header
+    #change first page header
     header = doc.tables[0]
 
     header.rows[2].cells[1].text = fund_info["Fund Name"]
@@ -72,13 +97,24 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path)
     header_fund_info.font.name = "Arial"
     header_fund_info.font.size = Pt(10)
 
-    message= f"""In accordance with Section 3.1 of the Amended and Restated Limited Partnership Agreement of the Fund dates {fund_info["Notice Date"]} (the "Agreement"), the Partnership is calling capital for Investments and Management Fees, and Partnership Expenses. Capitalized terms used but not defined in this notice are defined in the Agreement."""
-    change_text(doc, 3, message)
+    #Change fields
+    replacements = {
+        "<Section#>" : "3.3",
+        "<Notice_Date>" : fund_info["Notice Date"],
+        "<Total_Amount_Due>" : f"${fund_info['Total Amount Due']:,}",
+        "<Due_Date>" : fund_info["Due Date"],
+        "<Contact_Name>" : inv_info["Contact Name"],
+        "<Contact_Email>" : inv_info["Contact Email"]
+    }
 
-
-    instructions = doc.tables[1]
+    update_field(doc, text_fields[0], 3, replacements)
+    update_field(doc, text_fields[1], 5, replacements)
+    update_field(doc, text_fields[2], 7, replacements)
+    update_field(doc, text_fields[3], 10, replacements)
 
     #Fill in wire instructions table
+    instructions = doc.tables[1]
+
     for row in instructions.rows:
         if row.cells[0].text.strip():
             if str(row.cells[0].text.strip()) in wire_instructions:
@@ -88,7 +124,6 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path)
     change_text(doc, 15, fund_info["Fund Name"])
 
 
-    #page 2
     re = fund_info["Re"].split()
     re = ' '.join(re[:3])
     change_text(doc, 21, "Re: " + re)
@@ -109,11 +144,6 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path)
     change_text(doc, 20, "Investor: " + inv_info["Investor Name"])
     #Fill in the info
     instructions.rows[7].cells[1].text = inv_info["Investor Name"]
-    message = f"""Your portion of the call is ${inv_info["Total Amount Due"]:,} and is due on {fund_info["Due Date"]}.  Please send your payment by wire transfer in accordance with the instructions provided below."""
-    change_text(doc, 7, message)
-
-    message = f"""Should  you  have  any  questions  on  this  notice,  please  do  not  hesitate  to  contact  {inv_info["First Name"]} {inv_info["Last Name"]}  at {inv_info["Email"]}. """
-    change_text(doc, 10, message)
 
     for row in table.rows:
         if row.cells[0].text.strip():
