@@ -159,14 +159,13 @@ class MainApp(tk.Tk):
             total_mgmt_fee = int(allocation.at[index, "Total Mgmt Fee"])
             inv_info["Total Management Fee, net"] = int(allocation.at[index, "Total Mgmt Fee"])
 
-            inv_info["First Name"] = first_name
-            inv_info["Last Name"] = last_name
-            inv_info["Email"] = email
+            inv_info["Contact Name"] = first_name + " " + last_name
+            inv_info["Contact Email"] = email
 
             index += 1
             
             if option == "Capital Call":
-                doc = Document(r"C:\Users\ppark\OneDrive - GP Fund Solutions, LLC\Desktop\git\GPES-FILE-ENGINE\AutoDocs\documents\cap_call_template.docx")
+                doc = Document(r".\documents\cap_call_template.docx")
                 
                 output_pdf_name = inv_info["Investor Name"]
                 if self.is_sample:
@@ -176,7 +175,7 @@ class MainApp(tk.Tk):
                 if not self.is_sample:
                     self.files_list.append(output_path+".pdf")
 
-                create_cap_call_pdf(doc, excel_file_path, fund_info, inv_info, output_path, logo_path)
+                create_cap_call_pdf(doc, excel_file_path, fund_info, inv_info, output_path, logo_path, self.text_fields)
 
             if self.is_sample:
                 self.sample_ready = True
@@ -212,6 +211,9 @@ class MainApp(tk.Tk):
 
         print(f"All PDFs merged into {output_filename}")
 
+    def on_selected_option_change(self, *args):
+        # Trigger the child to update its frame based on var
+        self.frames["OutputPage"].update_frame_content()
 
     def __init__(self):
         super().__init__()
@@ -224,6 +226,9 @@ class MainApp(tk.Tk):
         self.selected_file = tk.StringVar(self, value="No file selected")
         self.selected_logo = tk.StringVar(self, value="No logo selected")
         self.selected_directory = tk.StringVar(self, value="No directory selected")
+        self.selected_option = tk.StringVar(self)
+        self.selected_option.trace_add("write", self.on_selected_option_change)
+
         self.first_name = tk.StringVar(self, value="")
         self.last_name = tk.StringVar(self, value="")
         self.email = tk.StringVar(self, value="")
@@ -243,6 +248,15 @@ class MainApp(tk.Tk):
         self.start_delimiter = tk.StringVar(self, value = "<start>")
         self.end_delimiter = tk.StringVar(self, value = "<end>")
         self.output_file = tk.StringVar(self, value = "bulk.pdf")
+
+        #text fields for capital call:
+        self.cap_call_field1 = tk.StringVar(value="""In accordance with Section <Section#> of the Amended and Restated Limited Partnership Agreement of the Fund dated <Notice_Date> (the “Agreement”), the Fund is calling capital for Investments, Management Fees, and Partnership Expenses. Capitalized terms used but not defined in this notice are defined in the Agreement.""")
+        self.cap_call_field2 = tk.StringVar(value="""Additional detail on this capital notice is presented on the attached Exhibit A.""")
+        self.cap_call_field3 = tk.StringVar(value="""Your portion of the call is <Total_Amount_Due> and is due on <Due_Date>.  Please send your payment by wire transfer in accordance with the instructions provided below.""")
+        self.cap_call_field4 = tk.StringVar(value="""Should you have any questions on this notice, please do not hesitate to contact <Contact_Name> at <Contact_Email>.""")
+        
+        self.cap_call_text = self.cap_call_field1.get() + "\n\n" + self.cap_call_field2.get() + "\n\n" + self.cap_call_field3.get() + "\n\n" + self.cap_call_field4.get()
+        self.text_fields = self.cap_call_text.split("\n\n")
 
         self.files_list = []
 
@@ -319,8 +333,8 @@ class InputPage(tk.Frame):
         label_option_title.pack(anchor="w")
 
         options = ["Capital Call", "Distribution Notice"]
-        controller.selected_option = tk.StringVar(self)
-        controller.selected_option.set(options[0])
+        
+        #controller.selected_option.set(options[0])
 
         option_menu = tk.OptionMenu(frame_option, controller.selected_option, *options, command=controller.option_selected)
         option_menu.config(font=controller.font_button, bg="#4CAF50", fg="white")
@@ -502,21 +516,23 @@ class OutputPage(tk.Frame):
             sample_output(controller.frames["OutputPage"].frame_sample, file_path[0])
 
             controller.is_sample = False
-            
+
+    
 
         super().__init__(parent)
         self.controller = controller
 
+        
         # Create a PanedWindow to split the window
         paned_window = tk.PanedWindow(self, orient=tk.HORIZONTAL)
         paned_window.pack(fill=tk.BOTH, expand=True)
 
         # Create the left side with a sidebar and content area
-        content_frame = tk.Frame(paned_window, bg="lightblue")
+        content_frame = tk.Frame(paned_window, bg="#e6e6e6")
         paned_window.add(content_frame)
 
         # Left content area (where the content will change)
-        left_frame = tk.Frame(content_frame, bg="lightblue")
+        left_frame = tk.Frame(content_frame, bg="#e6e6e6")
         left_frame.pack(fill=tk.BOTH, expand=True)
 
         # Create a frame for directory selection
@@ -562,12 +578,26 @@ class OutputPage(tk.Frame):
         tk.Label(self.bulk_frame, text="Output File Name:").grid(row=3, column=0, padx=5, pady=5, sticky='e')
         tk.Entry(self.bulk_frame, textvariable=controller.output_file).grid(row=3, column=1, padx=5, pady=5)
 
-        # Right side for displaying an image
-        self.frame_sample = tk.Frame(paned_window, bg="lightgreen")
-        sample_button = tk.Button(self.frame_sample, text="Create Sample", font=("Arial", 12), command=create_sample)
-        sample_button.pack()
+        #Modifiable entries
+        # Frame for contact info
+        self.content_frame = tk.Frame(left_frame, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        self.content_frame.pack(padx=20, pady=20, fill="x")
 
-        paned_window.add(self.frame_sample)
+        # Right side for displaying an image with a top frame for the button
+        self.frame_right = tk.Frame(paned_window, bg="lightgreen")  # The main right-side frame
+        self.frame_top = tk.Frame(self.frame_right, bg="lightblue")  # Top frame for the button
+        self.frame_sample = tk.Frame(self.frame_right, bg="lightgreen")  # Frame below for content display
+
+        # Create and pack the button into the top frame
+        sample_button = tk.Button(self.frame_top, text="Create Sample", font=("Arial", 12), command=create_sample)
+        sample_button.pack(pady=10)  # Add padding to space it out a bit
+
+        # Pack the frames vertically
+        self.frame_top.pack(fill="x")  # Top frame with button
+        self.frame_sample.pack(expand=True, fill="both")  # Content frame will expand to take remaining space
+
+        # Add the main right-side frame to the paned window
+        paned_window.add(self.frame_right)
 
         # Bottom frame for navigation buttons
         bottom_frame = tk.Frame(self, bg="lightgray", height=50)
@@ -588,6 +618,30 @@ class OutputPage(tk.Frame):
         # Bind the window resize event to the resize function
         self.bind("<Configure>", resize)
 
+    def update_frame_content(self):
+        var_value = self.controller.selected_option.get()
+
+        # Clear the frame by destroying all existing widgets
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+        # Add new widgets based on the value of the variable
+        if var_value == "Capital Call":
+            tk.Label(self.content_frame, text="Customize Capital Call").pack(pady=10)
+
+            self.cap_call_text_field = tk.Text(self.content_frame, wrap="word", width=100)
+            self.cap_call_text_field.pack(pady=10)
+
+            self.cap_call_text_field.insert("1.0", self.controller.cap_call_text)
+            self.cap_call_text_field.bind("<KeyRelease>", self.update_cap_call)
+
+        elif var_value == "Distribution Notice":
+            tk.Label(self.content_frame, text="Customize Distributed Notice").pack(pady=10)
+            text = tk.Text(self.content_frame)
+            text.pack(pady=10)
+        
+    def update_cap_call(self, event=None):
+        self.controller.text_fields = self.cap_call_text_field.get("1.0", "end-1c").split("\n\n")
+     
 
 if __name__ == "__main__":
     # Define the path to the sample folder
