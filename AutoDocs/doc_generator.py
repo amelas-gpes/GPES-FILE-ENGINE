@@ -170,6 +170,10 @@ class MainApp(tk.Tk):
                 output_pdf_name = inv_info["Investor Name"]
                 if self.is_sample:
                     output_pdf_name = "sample"
+                if self.output_file_split.get() != "":
+                    if (".pdf" not in self.output_file_split.get()):
+                        self.output_file_split.set(self.output_file_split.get() + ".pdf")
+                    output_pdf_name = self.output_file_split.get()
 
                 output_path = os.path.join(output_directory, f"{output_pdf_name}")
                 if not self.is_sample:
@@ -182,7 +186,7 @@ class MainApp(tk.Tk):
                 break
 
         if (self.bulk_choice.get()):
-            self.merge_pdfs_in_folder(output_directory, "bulk.pdf")
+            self.merge_pdfs_in_folder(output_directory, self.output_file.get())
 
         self.files_list = []
         print("PDF generation complete.")
@@ -248,6 +252,7 @@ class MainApp(tk.Tk):
         self.start_delimiter = tk.StringVar(self, value = "<start>")
         self.end_delimiter = tk.StringVar(self, value = "<end>")
         self.output_file = tk.StringVar(self, value = "bulk.pdf")
+        self.output_file_split = tk.StringVar(self, value="")
 
         #text fields for capital call:
         self.cap_call_field1 = tk.StringVar(value="""In accordance with Section <Section#> of the Amended and Restated Limited Partnership Agreement of the Fund dated <Notice_Date> (the “Agreement”), the Fund is calling capital for Investments, Management Fees, and Partnership Expenses. Capitalized terms used but not defined in this notice are defined in the Agreement.""")
@@ -296,17 +301,17 @@ class InputPage(tk.Frame):
         self.controller = controller
 
 
-        label = tk.Label(self, text="GPES FileGen", font=('Arial', 16))
+        label = tk.Label(self, text="GPES Mail Merge Automation", font=('Arial', 16))
         label.pack(side="top", fill="x", pady=10)
 
         # Frame for file selection
         frame_file = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_file.pack(padx=20, pady=20, fill="x")
 
-        label_file_title = tk.Label(frame_file, text="Select Excel File", font=controller.font_label, bg="#e6e6e6")
+        label_file_title = tk.Label(frame_file, text="Select Allocation File", font=controller.font_label, bg="#e6e6e6")
         label_file_title.pack(anchor="w")
 
-        button_file = tk.Button(frame_file, text="Select File", command=controller.select_file, font=controller.font_button, bg="#4CAF50", fg="white")
+        button_file = tk.Button(frame_file, text="Select File", command=controller.select_file, font=controller.font_button, bg="#4A164B", fg="white")
         button_file.pack(side="left", padx=10, pady=5)
 
         controller.label_file = tk.Label(frame_file, textvariable=controller.selected_file, bg="#e6e6e6", font=controller.font_label)
@@ -316,10 +321,10 @@ class InputPage(tk.Frame):
         frame_logo = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_logo.pack(padx=20, pady=20, fill="x")
 
-        label_logo_title = tk.Label(frame_logo, text="Select Logo To Be Placed On Documents", font=controller.font_label, bg="#e6e6e6")
+        label_logo_title = tk.Label(frame_logo, text="Select Firm Logo", font=controller.font_label, bg="#e6e6e6")
         label_logo_title.pack(anchor="w")
 
-        button_logo = tk.Button(frame_logo, text="Select Logo", command=controller.select_logo, font=controller.font_button, bg="#4CAF50", fg="white")
+        button_logo = tk.Button(frame_logo, text="Select Logo", command=controller.select_logo, font=controller.font_button, bg="#4A164B", fg="white")
         button_logo.pack(side="left", padx=10, pady=5)
 
         controller.label_logo = tk.Label(frame_logo, textvariable=controller.selected_logo, bg="#e6e6e6", font=controller.font_label)
@@ -329,7 +334,7 @@ class InputPage(tk.Frame):
         frame_option = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_option.pack(padx=20, pady=20, fill="x")
 
-        label_option_title = tk.Label(frame_option, text="Select An Option", font=controller.font_label, bg="#e6e6e6")
+        label_option_title = tk.Label(frame_option, text="Select Document Type", font=controller.font_label, bg="#e6e6e6")
         label_option_title.pack(anchor="w")
 
         options = ["Capital Call", "Distribution Notice"]
@@ -337,7 +342,7 @@ class InputPage(tk.Frame):
         #controller.selected_option.set(options[0])
 
         option_menu = tk.OptionMenu(frame_option, controller.selected_option, *options, command=controller.option_selected)
-        option_menu.config(font=controller.font_button, bg="#4CAF50", fg="white")
+        option_menu.config(font=controller.font_button, bg="#4A164B", fg="white")
         option_menu.pack(side="left", padx=10, pady=5)
 
         controller.label_option = tk.Label(frame_option, text="No option selected", bg="#e6e6e6", font=controller.font_label)
@@ -348,7 +353,7 @@ class InputPage(tk.Frame):
         frame_contacts = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_contacts.pack(padx=20, pady=20, fill="x")
 
-        label_contacts = tk.Label(frame_contacts, text="Contact Info", font=controller.font_label, bg="#e6e6e6")
+        label_contacts = tk.Label(frame_contacts, text="Contact Information - Add Contact Information to be Applied to Each Document", font=controller.font_label, bg="#e6e6e6")
         label_contacts.pack(anchor="w")
 
         # First Name
@@ -371,7 +376,6 @@ class InputPage(tk.Frame):
 
         email_entry = tk.Entry(frame_contacts, textvariable=controller.email)
         email_entry.pack(anchor="w", fill="x")
-
 
         # Frame for the investors input
         frame_investors = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
@@ -489,9 +493,15 @@ class OutputPage(tk.Frame):
             else:
                 self.bulk_frame.pack_forget()
 
+        def toggle_split_entry():
+            if controller.split_choice.get():
+                self.split_frame.pack()
+            else:
+                self.split_frame.pack_forget()
+
         def create_sample():
             controller.is_sample = True
-        
+
             # Define the path to the sample folder
             folder_path = 'sample/'
 
@@ -516,7 +526,6 @@ class OutputPage(tk.Frame):
             sample_output(controller.frames["OutputPage"].frame_sample, file_path[0])
 
             controller.is_sample = False
-
     
 
         super().__init__(parent)
@@ -542,7 +551,7 @@ class OutputPage(tk.Frame):
         label_dir_title = tk.Label(frame_dir, text="Select Where To Store Output PDF", font=controller.font_label, bg="#e6e6e6")
         label_dir_title.pack(anchor="w")
 
-        button_dir = tk.Button(frame_dir, text="Select Output Directory", command=controller.select_directory, font=controller.font_button, bg="#4CAF50", fg="white")
+        button_dir = tk.Button(frame_dir, text="Select Output Directory", command=controller.select_directory, font=controller.font_button, bg="#4A164B", fg="white")
         button_dir.pack(side="left", padx=10, pady=5)
 
         controller.label_dir = tk.Label(frame_dir, textvariable=controller.selected_directory, bg="#e6e6e6", font=controller.font_label)
@@ -555,7 +564,7 @@ class OutputPage(tk.Frame):
         label_options = tk.Label(frame_output_choice, text="Select Output Format", font=controller.font_label, bg="#e6e6e6")
         label_options.pack(anchor="w")
 
-        split_option = tk.Checkbutton(frame_output_choice, text="Split", variable=controller.split_choice, command=toggle_bulk_entry)
+        split_option = tk.Checkbutton(frame_output_choice, text="Split", variable=controller.split_choice, command=toggle_split_entry)
         bulk_option = tk.Checkbutton(frame_output_choice, text="Bulk", variable=controller.bulk_choice, command=toggle_bulk_entry)
 
         split_option.pack(anchor="w")
@@ -572,10 +581,17 @@ class OutputPage(tk.Frame):
 
         tk.Entry(frame_delimiters, textvariable=controller.end_delimiter).grid(row=2, column=1, padx=5, pady=5)
 
+        # Create an entry widget for split input output file name, dont pack initially
+        self.split_frame = tk.Frame(frame_output_choice)
+        tk.Label(self.split_frame, text="Output File Name for Split:").grid(row=3, column=0, padx=5, pady=5, sticky='e')
+        tk.Entry(self.split_frame, textvariable=controller.output_file_split).grid(row=3, column=1, padx=5, pady=5)
+
+        toggle_split_entry()
+
         # Create an Entry widget for bulk input, but don't pack it initially
         self.bulk_frame = tk.Frame(frame_output_choice)
 
-        tk.Label(self.bulk_frame, text="Output File Name:").grid(row=3, column=0, padx=5, pady=5, sticky='e')
+        tk.Label(self.bulk_frame, text="Output File Name for Bulk:").grid(row=3, column=0, padx=5, pady=5, sticky='e')
         tk.Entry(self.bulk_frame, textvariable=controller.output_file).grid(row=3, column=1, padx=5, pady=5)
 
         #Modifiable entries
@@ -584,9 +600,9 @@ class OutputPage(tk.Frame):
         self.content_frame.pack(padx=20, pady=20, fill="x")
 
         # Right side for displaying an image with a top frame for the button
-        self.frame_right = tk.Frame(paned_window, bg="lightgreen")  # The main right-side frame
-        self.frame_top = tk.Frame(self.frame_right, bg="lightblue")  # Top frame for the button
-        self.frame_sample = tk.Frame(self.frame_right, bg="lightgreen")  # Frame below for content display
+        self.frame_right = tk.Frame(paned_window, bg="#F1EAE5")  # The main right-side frame
+        self.frame_top = tk.Frame(self.frame_right, bg="#F27D42")  # Top frame for the button
+        self.frame_sample = tk.Frame(self.frame_right, bg="#F1EAE5")  # Frame below for content display
 
         # Create and pack the button into the top frame
         sample_button = tk.Button(self.frame_top, text="Create Sample", font=("Arial", 12), command=create_sample)
@@ -626,10 +642,15 @@ class OutputPage(tk.Frame):
             widget.destroy()
         # Add new widgets based on the value of the variable
         if var_value == "Capital Call":
-            tk.Label(self.content_frame, text="Customize Capital Call").pack(pady=10)
+            top_frame = tk.Frame(self.content_frame)
+            top_frame.pack(side="top", fill="x", pady=10)
 
-            self.cap_call_text_field = tk.Text(self.content_frame, wrap="word", width=100)
-            self.cap_call_text_field.pack(pady=10)
+            tk.Label(top_frame, text="Customize Capital Call").pack(side="left", padx=10, pady=10)
+
+            tk.Button(top_frame, text="Reset", command=self.onReset).pack(side="right", padx=10, pady=10)
+
+            self.cap_call_text_field = tk.Text(self.content_frame, wrap="word", width=100, undo=True)
+            self.cap_call_text_field.pack(side="bottom", pady=10)
 
             self.cap_call_text_field.insert("1.0", self.controller.cap_call_text)
             self.cap_call_text_field.bind("<KeyRelease>", self.update_cap_call)
@@ -642,6 +663,10 @@ class OutputPage(tk.Frame):
     def update_cap_call(self, event=None):
         self.controller.text_fields = self.cap_call_text_field.get("1.0", "end-1c").split("\n\n")
      
+    def onReset(self):
+        self.controller.text_fields = self.controller.cap_call_text.split("\n\n")
+        self.cap_call_text_field.delete('1.0', tk.END)
+        self.cap_call_text_field.insert("1.0", self.controller.cap_call_text)
 
 if __name__ == "__main__":
     # Define the path to the sample folder
