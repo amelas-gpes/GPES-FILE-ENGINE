@@ -58,19 +58,22 @@ def update_field(doc, field, position, replacements):
                 modified_message.append(str(replacements[message[i]]))
             i += 1
         else:
-            modified_message.append(message[i])
+            if ending != "":
+                modified_message.append(message[i] + ending)
+            else:
+                modified_message.append(message[i])
             i += 1
     
     modified_message = " ".join(modified_message)
 
     change_text(doc, position, modified_message)
 
-def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path, text_fields):
+def create_cap_call_pdf(doc, excel, fund_info, inv_info, total_fund_info, output_path, logo_path, text_fields, start_delim, end_delim, cap_call_table_data):
     wire_instructions = {
         "Bank Name:" : "Chase",
         "Bank Address:" : "277 Park Ave New York, NY 10172",
         "ABA Number:" : "021000021 (Domestic Wires)",
-        "Account Name:" : fund_info["Fund Name"],
+        "Account Name:" : fund_info["Partner Name"],
         "Account Number:" : "932859662",
         "SWIFT Code:" : "CHASUS33 (International Wires)"
     }
@@ -87,7 +90,7 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path,
     #change first page header
     header = doc.tables[0]
 
-    header.rows[2].cells[1].text = fund_info["Fund Name"]
+    header.rows[2].cells[1].text = fund_info["Partner Name"]
     header.rows[4].cells[1].text = fund_info["Re"]
     header.rows[6].cells[1].text = fund_info["Notice Date"]
 
@@ -101,10 +104,10 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path,
     replacements = {
         "<Section#>" : "3.3",
         "<Notice_Date>" : fund_info["Notice Date"],
-        "<Total_Amount_Due>" : f"${fund_info['Total Amount Due']:,}",
+        "<Total_Amount_Due>" : f"${int(fund_info['Net Amount Due / (Payable)']):,}",
         "<Due_Date>" : fund_info["Due Date"],
-        "<Contact_Name>" : inv_info["Contact Name"],
-        "<Contact_Email>" : inv_info["Contact Email"]
+        "<Contact_Name>" : fund_info["Contact Name"],
+        "<Contact_Email>" : fund_info["Contact Email"]
     }
 
     update_field(doc, text_fields[0], 3, replacements)
@@ -112,16 +115,17 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path,
     update_field(doc, text_fields[2], 7, replacements)
     update_field(doc, text_fields[3], 10, replacements)
 
-    #Fill in wire instructions table
+    
     instructions = doc.tables[1]
 
+    #Fill in wire instructions table
     for row in instructions.rows:
         if row.cells[0].text.strip():
             if str(row.cells[0].text.strip()) in wire_instructions:
                 row.cells[1].text = wire_instructions[str(row.cells[0].text.strip())]
 
 
-    change_text(doc, 15, fund_info["Fund Name"])
+    change_text(doc, 15, fund_info["Partner Name"])
 
 
     re = fund_info["Re"].split()
@@ -129,34 +133,79 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, output_path, logo_path,
     change_text(doc, 21, "Re: " + re)
 
 
-    #Fill in fund info table
     table = doc.tables[2]
-    
+
+    #Empty table
     for row in table.rows:
-        if row.cells[0].text.strip():
-            if str(row.cells[0].text.strip()) in fund_info:
-                row.cells[2].text = "{:,}".format(fund_info[str(row.cells[0].text.strip())])
-        
+        row._element.getparent().remove(row._element)
+    
+    capital_call_data = [
+        ["", "", "Total Fund", "", "", "Your Share"],
+        ["Capital Call", "", "", "", "", ""]
+    ]
+
+    for i in cap_call_table_data:
+        if i[1][1:-1] not in total_fund_info: continue
+        capital_call_data.append([i[0], "$", total_fund_info[i[1][1:-1]], "", "$", inv_info[i[1][1:-1]]])
+
+    """
+    #add investments to capital call table
+    for key in inv_info:
+        if "Investment" == key.split()[0]:
+            if total_fund_info[key] == "nan": continue
+            capital_call_data.append([key, "$", total_fund_info[key], "", "$", inv_info[key]])
+    
+
+    #add management fees to capital call table
+    capital_call_data.append(["Management Fees", "", total_fund_info["Gross Mgmt Fee"], "", "", inv_info["Gross Mgmt Fee"]])
+
+    #add partnership expenses to capital call table
+    capital_call_data.append(["Partnership Expenses", "", total_fund_info["Pshp Exp"], "", "", inv_info["Pshp Exp"]])
+    """
+
+    #add ending space
+    capital_call_data.append(["", "", "", "", "", ""])
+
+    # Insert rows to capital call table
+    for data_row in capital_call_data:
+        row_cells = table.add_row().cells
+        for i, data in enumerate(data_row):
+            row_cells[i].text = data
+
+
+    additional_information_data = [
+        ["Additional Information", "", "", "", "", ""]
+    ]
+    
+
+    # Insert rows to additional information table
+    for data_row in additional_information_data:
+        row_cells = table.add_row().cells
+        for i, data in enumerate(data_row):
+            row_cells[i].text = data
+    
     
     header.rows[0].cells[1].text = ""
-    header_inv_name = header.rows[0].cells[1].paragraphs[0].add_run(inv_info["Investor Name"])
+    header_inv_name = header.rows[0].cells[1].paragraphs[0].add_run(inv_info["Partner Name"])
     header_inv_name.bold = True
-    change_text(doc, 20, "Investor: " + inv_info["Investor Name"])
+    change_text(doc, 20, "Investor: " + inv_info["Partner Name"])
     #Fill in the info
-    instructions.rows[7].cells[1].text = inv_info["Investor Name"]
+    instructions.rows[7].cells[1].text = inv_info["Partner Name"]
 
+    """
+    #Fill in investor info table
     for row in table.rows:
         if row.cells[0].text.strip():
             if str(row.cells[0].text.strip()) in inv_info:
                 row.cells[5].text = "{:,}".format(inv_info[str(row.cells[0].text.strip())])
-
+    """
 
     # add delimiters
     # Create the new paragraph
     new_paragraph = doc.add_paragraph()
 
     # Add the text to the paragraph
-    run = new_paragraph.add_run(f"{fund_info["Start Delim"]} {fund_info["End Delim"]}")
+    run = new_paragraph.add_run(f"{start_delim} {end_delim}")
 
     # Set the text color to white (RGB for white is 255, 255, 255)
     run.font.color.rgb = RGBColor(255, 255, 255)
