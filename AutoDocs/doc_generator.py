@@ -20,6 +20,8 @@ from reportlab.lib.colors import white
 from reportlab.lib.units import inch
 from io import BytesIO
 
+from parse_input_excel import *
+
 from pdf_viewer import *
 
 class MainApp(tk.Tk):
@@ -29,22 +31,14 @@ class MainApp(tk.Tk):
             self.label_file.config(text=f"Selected: {file_path}")
             self.selected_file.set(file_path)
 
-            allocation = pd.read_excel(file_path, sheet_name = "Allocation", skiprows=1)
-            index = 5
-            while (str(allocation.at[index, "Partner Name"]) != "nan"):
-                self.investors.add(str(allocation.at[index, "Partner Name"]))
-                index += 1
+            parse_input_excel(file_path, "Allocation", self.fund_info, self.inv_info, self.total_fund_info)
+
+            for inv_num in self.inv_info:
+                self.investors.add(self.inv_info[inv_num]["Partner Name"])
             self.checked_investors = list(self.investors)
+
+            self.frames["InputPage"].label_confirmation.config(text=f"{len(self.inv_info)} Investors, {len(self.inv_info[next(iter(self.inv_info))])} Fields")
             
-            """
-            df = pd.read_excel(file_path, sheet_name = "Investor")
-            investor_col = df["Legal Name"]
-            for i in investor_col:
-                self.investors.add(i)
-            self.checked_investors = list(self.investors)
-            """
-
-
 
     def select_logo(self):
         logo_path = filedialog.askopenfilename(
@@ -102,72 +96,20 @@ class MainApp(tk.Tk):
         if email == "":
             print("No email given")
             return
+
+        self.fund_info["Contact Name"] = first_name + " " + last_name
+        self.fund_info["Contact Email"] = email
         
-
-        color = "#515154"
-        if self.is_sample:
-            color = "#ff4e28"
-
-        fund_info = parse_excel(excel_file_path)
-        fund_info["Start Delim"] = start_delim
-        fund_info["End Delim"] = end_delim
-
-
         #go through each investors and create pdfs for them
-        allocation = pd.read_excel(excel_file_path, sheet_name = "Allocation", skiprows=1)
-        index = 5
-        while (str(allocation.at[index, "Partner Name"]) != "nan"):
-            if (str(allocation.at[index, "Partner Name"]) not in self.checked_investors):
-                index += 1
+        for inv in self.inv_info:
+            if self.inv_info[inv]["Partner Name"] not in self.checked_investors:
                 continue
-            
-            #Gather info
-            inv_info = dict()
-
-            inv_info["Investor Name"] = str(allocation.at[index, "Partner Name"])
-
-            #investments = int(allocation.at[index, "Investment #1"])
-            inv_info["Investment"] = int(allocation.at[index, "Investment #1"])
-
-            #mgmt_fees = int(allocation.at[index, "Gross Mgmt Fee"])
-            inv_info["Management Fees"] = int(allocation.at[index, "Gross Mgmt Fee"])
-
-            #pshp_exp = int(allocation.at[index, "Pshp Exp"])
-            inv_info["Partnership Expenses"] = int(allocation.at[index, "Pshp Exp"])
-
-            total_amnt = int(allocation.at[index, "Net Amount Due / (Payable)"])
-            inv_info["Total Amount Due"] = int(allocation.at[index, "Net Amount Due / (Payable)"])
-
-            cap_commit = int(allocation.at[index, "Commitment"])
-            inv_info["Capital Commitment"] = int(allocation.at[index, "Commitment"])
-
-            cum_cap_contributions = int(allocation.at[index, "LTD Ending Contributions"])
-            inv_info["Cumulative Capital Contributions"] = int(allocation.at[index, "LTD Ending Contributions"])
-
-            rem_cap_commit = int(allocation.at[index, "Ending Remaining  Commitment"])
-            inv_info["Remaining Capital Commitment"] = int(allocation.at[index, "Ending Remaining  Commitment"])
-
-            commit_subj_mgmt_fee = int(allocation.at[index, "LP Commitment"])
-            inv_info["Commitment subject to Management Fee"] = int(allocation.at[index, "LP Commitment"])
-
-            mgmt_fee = int(allocation.at[index, "Gross Mgmt Fee"])
-            inv_info["Management Fee (1/1/2022 - 3/31/2022)"] = int(allocation.at[index, "Gross Mgmt Fee"])
-
-            mgmt_fee_reduct = int(allocation.at[index, "Mgmt Fee - Offsets"])
-            inv_info["Management Fee Reduction"] = int(allocation.at[index, "Mgmt Fee - Offsets"])
-
-            total_mgmt_fee = int(allocation.at[index, "Total Mgmt Fee"])
-            inv_info["Total Management Fee, net"] = int(allocation.at[index, "Total Mgmt Fee"])
-
-            inv_info["Contact Name"] = first_name + " " + last_name
-            inv_info["Contact Email"] = email
-
-            index += 1
-            
+        
             if option == "Capital Call":
                 doc = Document(r".\documents\cap_call_template.docx")
                 
-                output_pdf_name = inv_info["Investor Name"]
+                
+                output_pdf_name = self.inv_info[inv]["Partner Name"]
                 if self.is_sample:
                     output_pdf_name = "sample"
                 if self.output_file_split.get() != "":
@@ -175,11 +117,15 @@ class MainApp(tk.Tk):
                         self.output_file_split.set(self.output_file_split.get() + ".pdf")
                     output_pdf_name = self.output_file_split.get()
 
+                    output_pdf_name.replace("<investor_name>", self.inv_info[inv]["Parner Name"])
+                    print("OUTPUT_PDF_NAME: ", output_pdf_name)
+
                 output_path = os.path.join(output_directory, f"{output_pdf_name}")
                 if not self.is_sample:
                     self.files_list.append(output_path+".pdf")
+                
 
-                create_cap_call_pdf(doc, excel_file_path, fund_info, inv_info, output_path, logo_path, self.text_fields)
+                create_cap_call_pdf(doc, excel_file_path, self.fund_info, self.inv_info[inv], self.total_fund_info, output_path, logo_path, self.text_fields, start_delim, end_delim, self.cap_call_table_data)
 
             if self.is_sample:
                 self.sample_ready = True
@@ -246,6 +192,18 @@ class MainApp(tk.Tk):
 
         self.is_sample = False
 
+        self.inv_info = dict()
+        self.fund_info = dict()
+        self.total_fund_info = dict()
+
+        self.confirmation_data = "0 fields, 0 investors"
+
+        self.cap_call_table_data = [
+            ["Investment", "<Investment #1>", "<Investment #1>"],
+            ["Management Fees", "<Gross Mgmt Fee>", "<Gross Mgmt Fee>"],
+            ["Partnership Expenses", "<Pshp Exp>", "<Pshp Exp>"]
+        ]
+
         # Create a StringVar to hold the choice (split or bulk)
         self.split_choice = tk.IntVar(value=1)
         self.bulk_choice = tk.IntVar(value=0)
@@ -308,7 +266,7 @@ class InputPage(tk.Frame):
         frame_file = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         frame_file.pack(padx=20, pady=20, fill="x")
 
-        label_file_title = tk.Label(frame_file, text="Select Allocation File", font=controller.font_label, bg="#e6e6e6")
+        label_file_title = tk.Label(frame_file, text="Select Allocation File (Please ensure Investor Number is first column)", font=controller.font_label, bg="#e6e6e6")
         label_file_title.pack(anchor="w")
 
         button_file = tk.Button(frame_file, text="Select File", command=controller.select_file, font=controller.font_button, bg="#4A164B", fg="white")
@@ -316,6 +274,13 @@ class InputPage(tk.Frame):
 
         controller.label_file = tk.Label(frame_file, textvariable=controller.selected_file, bg="#e6e6e6", font=controller.font_label)
         controller.label_file.pack(side="left", padx=10)
+
+        # Frame for confirmation modal
+        frame_confirmation = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        frame_confirmation.pack(padx=20, pady=20, fill="x")
+
+        self.label_confirmation = tk.Label(frame_confirmation, text=controller.confirmation_data, font=controller.font_label, bg="#e6e6e6")
+        self.label_confirmation.pack(anchor="w")
 
         # Frame for logo selection
         frame_logo = tk.Frame(self, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
@@ -477,8 +442,6 @@ class InputPage(tk.Frame):
         window.mainloop()
      
 
-
-
 class OutputPage(tk.Frame):
     def __init__(self, parent, controller):
         def resize(event):
@@ -531,18 +494,41 @@ class OutputPage(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        
         # Create a PanedWindow to split the window
         paned_window = tk.PanedWindow(self, orient=tk.HORIZONTAL)
         paned_window.pack(fill=tk.BOTH, expand=True)
 
-        # Create the left side with a sidebar and content area
+        # Create the left side with a content area (which will be scrollable)
         content_frame = tk.Frame(paned_window, bg="#e6e6e6")
         paned_window.add(content_frame)
 
+        # Create a canvas and scrollbar for the left frame
+        canvas = tk.Canvas(content_frame, bg="#e6e6e6")
+        scrollbar = tk.Scrollbar(content_frame, orient=tk.VERTICAL, command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Place the canvas and scrollbar
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Create a frame inside the canvas
+        self.scrollable_frame = tk.Frame(canvas, bg="#e6e6e6")
+
+        # This is needed to allow the scrollable frame to adjust to the canvas size
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        # Add the scrollable frame to the canvas
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
         # Left content area (where the content will change)
-        left_frame = tk.Frame(content_frame, bg="#e6e6e6")
+        left_frame = tk.Frame(self.scrollable_frame, bg="#e6e6e6")
         left_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Bind mouse wheel scrolling
+        canvas.bind_all("<MouseWheel>", lambda event: self._on_mouse_wheel(event, canvas))
 
         # Create a frame for directory selection
         frame_dir = tk.Frame(left_frame, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
@@ -585,6 +571,7 @@ class OutputPage(tk.Frame):
         self.split_frame = tk.Frame(frame_output_choice)
         tk.Label(self.split_frame, text="Output File Name for Split:").grid(row=3, column=0, padx=5, pady=5, sticky='e')
         tk.Entry(self.split_frame, textvariable=controller.output_file_split).grid(row=3, column=1, padx=5, pady=5)
+        tk.Label(self.split_frame, text="""Placeholders:\n<investor_name> : investor name""").grid(row=4, column=0, padx=5, pady=5, sticky="e")
 
         toggle_split_entry()
 
@@ -598,6 +585,24 @@ class OutputPage(tk.Frame):
         # Frame for contact info
         self.content_frame = tk.Frame(left_frame, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         self.content_frame.pack(padx=20, pady=20, fill="x")
+
+        """Modifiable table entries"""
+        self.row_count = 3  # Keeps track of the number of rows
+
+        # Frame for file selection
+        self.table_frame = tk.Frame(left_frame, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
+        self.table_frame.pack(padx=20, pady=20, fill="x")
+
+        # Use grid layout inside the window_frame
+        self.table_frame.grid_columnconfigure(1, weight=1)  # Make second column expandable
+
+        for index, val in enumerate(controller.cap_call_table_data):
+            self.create_entry_pair(val, index)
+
+        # Add Button to dynamically add rows
+        add_button = tk.Button(left_frame, text="Add New Entry Pair", command=self.add_entry_pair)
+        add_button.pack(pady=10)
+
 
         # Right side for displaying an image with a top frame for the button
         self.frame_right = tk.Frame(paned_window, bg="#F1EAE5")  # The main right-side frame
@@ -634,6 +639,10 @@ class OutputPage(tk.Frame):
         # Bind the window resize event to the resize function
         self.bind("<Configure>", resize)
 
+    def _on_mouse_wheel(self, event, canvas):
+        """Scroll the canvas vertically when the mouse wheel is used (Windows)."""
+        canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
     def update_frame_content(self):
         var_value = self.controller.selected_option.get()
 
@@ -659,14 +668,48 @@ class OutputPage(tk.Frame):
             tk.Label(self.content_frame, text="Customize Distributed Notice").pack(pady=10)
             text = tk.Text(self.content_frame)
             text.pack(pady=10)
+
+    
         
+    #Updates cap call modifiable text field
     def update_cap_call(self, event=None):
         self.controller.text_fields = self.cap_call_text_field.get("1.0", "end-1c").split("\n\n")
-     
+    
+    #Resets cap call modifiable text field
     def onReset(self):
         self.controller.text_fields = self.controller.cap_call_text.split("\n\n")
         self.cap_call_text_field.delete('1.0', tk.END)
         self.cap_call_text_field.insert("1.0", self.controller.cap_call_text)
+
+    #Creates entries for modifiable table
+    def create_entry_pair(self, default, row):
+        """Helper function to create a pair of left and right entries in a given row."""
+        left_entry = tk.Entry(self.table_frame)
+        left_entry.insert(0, default[0])
+        left_entry.grid(row=row, column=0, padx=5, pady=5, sticky="w")
+
+        right_entry = tk.Entry(self.table_frame)
+        right_entry.insert(0, default[1])
+        right_entry.grid(row=row, column=1, padx=5, pady=5, sticky="e")
+
+        third_entry = tk.Entry(self.table_frame)
+        third_entry.insert(0, default[2])
+        third_entry.grid(row=row, column=2, padx=5, pady=5, sticky="e")
+
+        # Bind the change event to update the list when entry values are changed
+        left_entry.bind("<KeyRelease>", lambda event, r=row: self.update_list(r, 0, left_entry.get()))
+        right_entry.bind("<KeyRelease>", lambda event, r=row: self.update_list(r, 1, right_entry.get()))
+        third_entry.bind("<KeyRelease>", lambda event, r=row: self.update_list(r, 1, third_entry.get()))
+
+    def update_list(self, row, column, new_value):
+        """Update the list based on the entry changes."""
+        self.controller.cap_call_table_data[row][column] = new_value
+
+    def add_entry_pair(self):
+        """Function to add a new pair of entries dynamically."""
+        self.create_entry_pair(["New Entry", "", ""], self.row_count)
+        self.controller.cap_call_table_data.append(["New Entry", "", ""])
+        self.row_count += 1  # Increment the row count each time a new pair is added
 
 if __name__ == "__main__":
     # Define the path to the sample folder
