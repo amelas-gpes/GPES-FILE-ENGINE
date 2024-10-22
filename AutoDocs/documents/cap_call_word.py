@@ -145,8 +145,14 @@ def create_cap_call_pdf(doc, excel, fund_info, inv_info, total_fund_info, output
     ]
 
     for i in cap_call_table_data:
-        if i[1][1:-1] not in total_fund_info: continue
-        capital_call_data.append([i[0], "$", total_fund_info[i[1][1:-1]], "", "$", inv_info[i[1][1:-1]]])
+        first_data = ""
+        second_data = ""
+
+        if i[1][1:-1] in total_fund_info: first_data = total_fund_info[i[1][1:-1]]
+        if i[2][1:-1] in inv_info: second_data = inv_info[i[2][1:-1]]
+
+        capital_call_data.append([i[0], "$", first_data, "", "$", second_data])
+
 
     """
     #add investments to capital call table
