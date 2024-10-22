@@ -38,6 +38,15 @@ class MainApp(tk.Tk):
             self.checked_investors = list(self.investors)
 
             self.frames["InputPage"].label_confirmation.config(text=f"{len(self.inv_info)} Investors, {len(self.inv_info[next(iter(self.inv_info))])} Fields")
+
+            #Populate file list
+            #self.field_list = ["<Investment #1>"]
+            inv_num = next(iter(self.inv_info))
+            for key in self.inv_info[inv_num]:
+                self.field_list.append("<" + key + ">")
+            
+            for index, val in enumerate(self.cap_call_table_data):
+                self.frames["OutputPage"].create_entry_pair(val, index)
             
 
     def select_logo(self):
@@ -203,6 +212,8 @@ class MainApp(tk.Tk):
             ["Management Fees", "<Gross Mgmt Fee>", "<Gross Mgmt Fee>"],
             ["Partnership Expenses", "<Pshp Exp>", "<Pshp Exp>"]
         ]
+        """Modifiable table entries"""
+        self.row_count = 3  # Keeps track of the number of rows
 
         # Create a StringVar to hold the choice (split or bulk)
         self.split_choice = tk.IntVar(value=1)
@@ -222,6 +233,8 @@ class MainApp(tk.Tk):
         self.text_fields = self.cap_call_text.split("\n\n")
 
         self.files_list = []
+
+        self.field_list = []
 
         # Define font and styling options
         self.font_label = ("Helvetica", 12)
@@ -586,18 +599,12 @@ class OutputPage(tk.Frame):
         self.content_frame = tk.Frame(left_frame, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         self.content_frame.pack(padx=20, pady=20, fill="x")
 
-        """Modifiable table entries"""
-        self.row_count = 3  # Keeps track of the number of rows
-
         # Frame for file selection
         self.table_frame = tk.Frame(left_frame, bg="#e6e6e6", bd=2, relief="sunken", padx=10, pady=10)
         self.table_frame.pack(padx=20, pady=20, fill="x")
 
         # Use grid layout inside the window_frame
         self.table_frame.grid_columnconfigure(1, weight=1)  # Make second column expandable
-
-        for index, val in enumerate(controller.cap_call_table_data):
-            self.create_entry_pair(val, index)
 
         # Add Button to dynamically add rows
         add_button = tk.Button(left_frame, text="Add New Entry Pair", command=self.add_entry_pair)
@@ -688,28 +695,34 @@ class OutputPage(tk.Frame):
         left_entry.insert(0, default[0])
         left_entry.grid(row=row, column=0, padx=5, pady=5, sticky="w")
 
-        right_entry = tk.Entry(self.table_frame)
-        right_entry.insert(0, default[1])
-        right_entry.grid(row=row, column=1, padx=5, pady=5, sticky="e")
-
-        third_entry = tk.Entry(self.table_frame)
-        third_entry.insert(0, default[2])
-        third_entry.grid(row=row, column=2, padx=5, pady=5, sticky="e")
-
-        # Bind the change event to update the list when entry values are changed
         left_entry.bind("<KeyRelease>", lambda event, r=row: self.update_list(r, 0, left_entry.get()))
-        right_entry.bind("<KeyRelease>", lambda event, r=row: self.update_list(r, 1, right_entry.get()))
-        third_entry.bind("<KeyRelease>", lambda event, r=row: self.update_list(r, 1, third_entry.get()))
+
+
+        first_entry_val = tk.StringVar(self.table_frame)
+        first_entry_val.set("Select an option")
+        first_entry_val.trace("w", lambda *args, r=row: self.update_list(r, 1, first_entry_val.get()))
+
+        first_entry = tk.OptionMenu(self.table_frame, first_entry_val, *(self.controller.field_list))
+        first_entry.grid(row=row, column=1, padx=5, pady=5, sticky="e")
+
+        
+        second_entry_val = tk.StringVar(self.table_frame)
+        second_entry_val.set("Select an option")
+        second_entry_val.trace("w", lambda *args, r=row: self.update_list(r, 2, second_entry_val.get()))
+
+        second_entry = tk.OptionMenu(self.table_frame, second_entry_val, *(self.controller.field_list))
+        second_entry.grid(row=row, column=2, padx=5, pady=5, sticky="e")
 
     def update_list(self, row, column, new_value):
         """Update the list based on the entry changes."""
         self.controller.cap_call_table_data[row][column] = new_value
+        print(self.controller.cap_call_table_data)
 
     def add_entry_pair(self):
         """Function to add a new pair of entries dynamically."""
-        self.create_entry_pair(["New Entry", "", ""], self.row_count)
+        self.create_entry_pair(["New Entry", "", ""], self.controller.row_count)
         self.controller.cap_call_table_data.append(["New Entry", "", ""])
-        self.row_count += 1  # Increment the row count each time a new pair is added
+        self.controller.row_count += 1  # Increment the row count each time a new pair is added
 
 if __name__ == "__main__":
     # Define the path to the sample folder
